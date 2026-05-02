@@ -2,6 +2,8 @@ export interface Service {
   id: string;
   name: string;
   durationMinutes: number;
+  priceCents: number;
+  priceSuffix?: "+";
   colorClassName: string;
 }
 

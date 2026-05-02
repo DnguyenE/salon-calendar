@@ -39,19 +39,23 @@ export function TechnicianColumn({
         style={{ height: slots.length * SLOT_HEIGHT_PX }}
       >
         {slots.map((slot, idx) => {
-          const isHourStart =
-            minutesSinceDayStart(slot) % 60 === 0 && idx !== 0;
+          const isHourStart = minutesSinceDayStart(slot) % 60 === 0;
+          let borderClass = "";
+          if (idx === 0) {
+            borderClass = "";
+          } else if (isHourStart) {
+            borderClass = "border-t border-zinc-300 dark:border-zinc-700";
+          } else {
+            borderClass =
+              "border-t border-dashed border-zinc-100/80 dark:border-zinc-900";
+          }
           return (
             <button
               key={slot.toISOString()}
               type="button"
               onClick={() => onSlotClick(technician.id, slot)}
               aria-label={`Book at ${slot.toISOString()} for ${technician.name}`}
-              className={`absolute inset-x-0 cursor-pointer border-b border-dashed transition-colors hover:bg-zinc-900/5 dark:hover:bg-white/5 ${
-                isHourStart
-                  ? "border-zinc-200 dark:border-zinc-800"
-                  : "border-zinc-100 dark:border-zinc-900"
-              }`}
+              className={`absolute inset-x-0 cursor-pointer transition-colors hover:bg-zinc-900/5 dark:hover:bg-white/5 ${borderClass}`}
               style={{
                 top: idx * SLOT_HEIGHT_PX,
                 height: SLOT_HEIGHT_PX,

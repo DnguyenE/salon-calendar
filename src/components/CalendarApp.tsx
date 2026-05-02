@@ -5,6 +5,7 @@ import { addDays, isSameDay, parseISO } from "date-fns";
 import { v4 as uuid } from "uuid";
 import type { Booking } from "@/src/types";
 import { useBookings } from "@/src/store/useBookings";
+import { defaultSlotForDay } from "@/src/lib/time";
 import { CalendarHeader } from "./CalendarHeader";
 import { DayGrid } from "./DayGrid";
 import {
@@ -78,6 +79,11 @@ export function CalendarApp() {
     [bookings],
   );
 
+  const handleNewAppointment = useCallback(() => {
+    const slot = defaultSlotForDay(date);
+    setPopover({ mode: "new", slotISO: slot.toISOString() });
+  }, [date]);
+
   const handleCreate = useCallback(
     ({
       technicianId,
@@ -116,32 +122,24 @@ export function CalendarApp() {
     [deleteBooking],
   );
 
-  const popoverTechnicianId =
-    popover?.mode === "new"
-      ? popover.technicianId
-      : popover?.mode === "edit"
-        ? popover.booking.technicianId
-        : null;
+  const popoverDate = useMemo(() => {
+    if (popover?.mode === "new") return parseISO(popover.slotISO);
+    if (popover?.mode === "edit") return parseISO(popover.booking.startISO);
+    return date;
+  }, [popover, date]);
 
-  const existingBookingsForPopoverTech = useMemo(() => {
-    if (!popoverTechnicianId) return [];
-    return bookings.filter(
-      (b) =>
-        b.technicianId === popoverTechnicianId &&
-        isSameDay(
-          parseISO(b.startISO),
-          popover?.mode === "new"
-            ? parseISO(popover.slotISO)
-            : popover?.mode === "edit"
-              ? parseISO(popover.booking.startISO)
-              : date,
-        ),
-    );
-  }, [bookings, popover, popoverTechnicianId, date]);
+  const bookingsForPopoverDay = useMemo(
+    () => bookings.filter((b) => isSameDay(parseISO(b.startISO), popoverDate)),
+    [bookings, popoverDate],
+  );
 
   return (
     <div className="flex min-h-screen flex-col bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
-      <CalendarHeader date={date} onChange={setDate} />
+      <CalendarHeader
+        date={date}
+        onChange={setDate}
+        onNewAppointment={handleNewAppointment}
+      />
 
       {!hydrated ? (
         <div className="flex flex-1 items-center justify-center text-sm text-zinc-500">
@@ -159,7 +157,7 @@ export function CalendarApp() {
       {popover && (
         <NewBookingPopover
           state={popover}
-          existingBookingsForTechnician={existingBookingsForPopoverTech}
+          bookingsForDay={bookingsForPopoverDay}
           onClose={() => setPopover(null)}
           onCreate={handleCreate}
           onUpdate={handleUpdate}
@@ -168,8 +166,8 @@ export function CalendarApp() {
       )}
 
       <footer className="border-t border-zinc-200 bg-white px-4 py-2 text-[11px] text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-400">
-        Tip: ← / → to change days · T for today · Click a slot to book · Click a
-        booking to edit
+        Tip: ← / → to change days · T for today · Click a slot to book a
+        specific tech · Use “+ New appointment” for any tech
       </footer>
     </div>
   );

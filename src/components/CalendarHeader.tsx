@@ -5,6 +5,7 @@ import { addDays, format, isSameDay } from "date-fns";
 interface CalendarHeaderProps {
   date: Date;
   onChange: (date: Date) => void;
+  onNewAppointment: () => void;
 }
 
 function toDateInputValue(date: Date): string {
@@ -16,7 +17,11 @@ function fromDateInputValue(value: string): Date {
   return new Date(y, (m ?? 1) - 1, d ?? 1);
 }
 
-export function CalendarHeader({ date, onChange }: CalendarHeaderProps) {
+export function CalendarHeader({
+  date,
+  onChange,
+  onNewAppointment,
+}: CalendarHeaderProps) {
   const today = new Date();
   const isToday = isSameDay(date, today);
 
@@ -58,6 +63,14 @@ export function CalendarHeader({ date, onChange }: CalendarHeaderProps) {
       </div>
 
       <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={onNewAppointment}
+          className="inline-flex h-9 items-center gap-1 rounded-md bg-zinc-900 px-3 text-sm font-semibold text-white transition-colors hover:bg-zinc-700 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+        >
+          <span aria-hidden>+</span>
+          New appointment
+        </button>
         <input
           type="date"
           value={toDateInputValue(date)}

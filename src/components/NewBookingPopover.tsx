@@ -3,12 +3,18 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { format, parseISO } from "date-fns";
 import type { Booking, Service } from "@/src/types";
-import { SERVICES, getTechnician } from "@/src/lib/config";
-import { rangeOverlapsBooking, wouldFitInDay } from "@/src/lib/time";
+import { SERVICES, TECHNICIANS, getTechnician } from "@/src/lib/config";
+import {
+  countAvailableTechs,
+  pickAvailableTech,
+  rangeOverlapsBooking,
+  slotsForDay,
+  wouldFitInDay,
+} from "@/src/lib/time";
 
 export interface NewPopoverState {
   mode: "new";
-  technicianId: string;
+  technicianId?: string;
   slotISO: string;
 }
 
@@ -19,9 +25,12 @@ export interface EditPopoverState {
 
 export type PopoverState = NewPopoverState | EditPopoverState;
 
+const ANY_TECH = "any" as const;
+type TechSelection = string | typeof ANY_TECH;
+
 interface NewBookingPopoverProps {
   state: PopoverState;
-  existingBookingsForTechnician: Booking[];
+  bookingsForDay: Booking[];
   onClose: () => void;
   onCreate: (input: {
     technicianId: string;
@@ -33,24 +42,28 @@ interface NewBookingPopoverProps {
   onDelete: (bookingId: string) => void;
 }
 
-function isServiceAvailable(
+function formatPrice(service: Service): string {
+  const dollars = (service.priceCents / 100).toFixed(0);
+  return `$${dollars}${service.priceSuffix ?? ""}`;
+}
+
+function isServiceAvailableForTech(
   service: Service,
   start: Date,
-  existingBookings: Booking[],
-  ignoreBookingId?: string,
+  bookingsForTech: Booking[],
+  ignoreBookingId: string | undefined,
 ): boolean {
   if (!wouldFitInDay(start, service)) return false;
-  const others = ignoreBookingId
-    ? existingBookings.filter((b) => b.id !== ignoreBookingId)
-    : existingBookings;
-  return !others.some((b) =>
-    rangeOverlapsBooking(start, service.durationMinutes, b),
+  return !bookingsForTech.some(
+    (b) =>
+      b.id !== ignoreBookingId &&
+      rangeOverlapsBooking(start, service.durationMinutes, b),
   );
 }
 
 export function NewBookingPopover({
   state,
-  existingBookingsForTechnician,
+  bookingsForDay,
   onClose,
   onCreate,
   onUpdate,
@@ -58,51 +71,93 @@ export function NewBookingPopover({
 }: NewBookingPopoverProps) {
   const isEdit = state.mode === "edit";
 
-  const start = useMemo(
-    () =>
-      state.mode === "new"
-        ? parseISO(state.slotISO)
-        : parseISO(state.booking.startISO),
-    [state],
-  );
+  const initialSlotISO =
+    state.mode === "new" ? state.slotISO : state.booking.startISO;
 
-  const technicianId =
-    state.mode === "new" ? state.technicianId : state.booking.technicianId;
-  const technician = getTechnician(technicianId);
+  const initialTechSelection: TechSelection =
+    state.mode === "new"
+      ? (state.technicianId ?? ANY_TECH)
+      : state.booking.technicianId;
 
   const initialServiceId =
     state.mode === "edit" ? state.booking.serviceId : SERVICES[0]?.id ?? "";
   const initialName = state.mode === "edit" ? state.booking.customerName : "";
 
+  const [selectedSlotISO, setSelectedSlotISO] = useState(initialSlotISO);
+  const [techSelection, setTechSelection] =
+    useState<TechSelection>(initialTechSelection);
   const [serviceId, setServiceId] = useState(initialServiceId);
   const [customerName, setCustomerName] = useState(initialName);
   const nameInputRef = useRef<HTMLInputElement>(null);
 
+  const start = useMemo(() => parseISO(selectedSlotISO), [selectedSlotISO]);
+
   const ignoreBookingId = state.mode === "edit" ? state.booking.id : undefined;
+
+  const slotOptions = useMemo(() => slotsForDay(start), [start]);
+
+  const bookingsBySpecificTech = useMemo(() => {
+    if (techSelection === ANY_TECH) return [] as Booking[];
+    return bookingsForDay.filter((b) => b.technicianId === techSelection);
+  }, [bookingsForDay, techSelection]);
 
   const servicesWithAvailability = useMemo(
     () =>
-      SERVICES.map((s) => ({
-        service: s,
-        available: isServiceAvailable(
-          s,
-          start,
-          existingBookingsForTechnician,
-          ignoreBookingId,
-        ),
-      })),
-    [start, existingBookingsForTechnician, ignoreBookingId],
+      SERVICES.map((s) => {
+        let available: boolean;
+        if (techSelection === ANY_TECH) {
+          available =
+            pickAvailableTech(
+              start,
+              s.durationMinutes,
+              bookingsForDay,
+              TECHNICIANS,
+              ignoreBookingId,
+            ) !== null;
+        } else {
+          available = isServiceAvailableForTech(
+            s,
+            start,
+            bookingsBySpecificTech,
+            ignoreBookingId,
+          );
+        }
+        return { service: s, available };
+      }),
+    [
+      start,
+      techSelection,
+      bookingsForDay,
+      bookingsBySpecificTech,
+      ignoreBookingId,
+    ],
   );
 
-  useEffect(() => {
-    const firstAvailable = servicesWithAvailability.find(
+  const effectiveServiceId = useMemo(() => {
+    const current = servicesWithAvailability.find(
       (s) => s.service.id === serviceId && s.available,
     );
-    if (!firstAvailable) {
-      const alt = servicesWithAvailability.find((s) => s.available);
-      if (alt) setServiceId(alt.service.id);
-    }
+    if (current) return serviceId;
+    return (
+      servicesWithAvailability.find((s) => s.available)?.service.id ?? serviceId
+    );
   }, [servicesWithAvailability, serviceId]);
+
+  const selectedService = useMemo(
+    () => SERVICES.find((s) => s.id === effectiveServiceId),
+    [effectiveServiceId],
+  );
+
+  const freeTechCount = useMemo(() => {
+    if (!selectedService) return 0;
+    return countAvailableTechs(
+      start,
+      selectedService.durationMinutes,
+      bookingsForDay,
+      TECHNICIANS,
+      ignoreBookingId,
+    );
+  }, [selectedService, start, bookingsForDay, ignoreBookingId]);
 
   useEffect(() => {
     const t = setTimeout(() => nameInputRef.current?.focus(), 20);
@@ -118,30 +173,48 @@ export function NewBookingPopover({
   }, [onClose]);
 
   const canSubmit =
-    servicesWithAvailability.find((s) => s.service.id === serviceId)
+    servicesWithAvailability.find((s) => s.service.id === effectiveServiceId)
       ?.available ?? false;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!canSubmit) return;
+    if (!canSubmit || !selectedService) return;
     if (state.mode === "new") {
+      let resolvedTechId: string;
+      if (techSelection === ANY_TECH) {
+        const tech = pickAvailableTech(
+          start,
+          selectedService.durationMinutes,
+          bookingsForDay,
+          TECHNICIANS,
+        );
+        if (!tech) return;
+        resolvedTechId = tech.id;
+      } else {
+        resolvedTechId = techSelection;
+      }
       onCreate({
-        technicianId,
-        serviceId,
+        technicianId: resolvedTechId,
+        serviceId: effectiveServiceId,
         customerName: customerName.trim(),
-        slotISO: state.slotISO,
+        slotISO: selectedSlotISO,
       });
     } else {
       onUpdate({
         ...state.booking,
-        serviceId,
+        serviceId: effectiveServiceId,
         customerName: customerName.trim(),
       });
     }
     onClose();
   };
 
-  const anyAvailable = servicesWithAvailability.some((s) => s.available);
+  const anyServiceAvailable = servicesWithAvailability.some((s) => s.available);
+
+  const headerTechLabel =
+    techSelection === ANY_TECH
+      ? "Any available tech"
+      : (getTechnician(techSelection)?.name ?? "Technician");
 
   return (
     <div
@@ -157,42 +230,98 @@ export function NewBookingPopover({
             {isEdit ? "Edit appointment" : "New appointment"}
           </h2>
           <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
-            {technician?.name ?? "Technician"} · {format(start, "EEE MMM d")} ·{" "}
+            {headerTechLabel} · {format(start, "EEE MMM d")} ·{" "}
             {format(start, "h:mm a")}
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {!isEdit && (
+            <div>
+              <label
+                htmlFor="slot-select"
+                className="mb-1.5 block text-xs font-medium text-zinc-700 dark:text-zinc-300"
+              >
+                Time
+              </label>
+              <select
+                id="slot-select"
+                value={selectedSlotISO}
+                onChange={(e) => setSelectedSlotISO(e.target.value)}
+                className="w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:border-zinc-50 dark:focus:ring-zinc-50"
+              >
+                {slotOptions.map((slot) => {
+                  const iso = slot.toISOString();
+                  return (
+                    <option key={iso} value={iso}>
+                      {format(slot, "h:mm a")}
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+          )}
+
+          {!isEdit && (
+            <div>
+              <label
+                htmlFor="tech-select"
+                className="mb-1.5 block text-xs font-medium text-zinc-700 dark:text-zinc-300"
+              >
+                Technician
+              </label>
+              <select
+                id="tech-select"
+                value={techSelection}
+                onChange={(e) => setTechSelection(e.target.value)}
+                className="w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:border-zinc-50 dark:focus:ring-zinc-50"
+              >
+                <option value={ANY_TECH}>Any available tech</option>
+                {TECHNICIANS.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1.5 text-[11px] text-zinc-500 dark:text-zinc-400">
+                {freeTechCount} of {TECHNICIANS.length} techs free for this
+                service at this time
+              </p>
+            </div>
+          )}
+
           <div>
             <label className="mb-1.5 block text-xs font-medium text-zinc-700 dark:text-zinc-300">
               Service
             </label>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 gap-2">
               {servicesWithAvailability.map(({ service, available }) => {
-                const selected = service.id === serviceId;
+                const selected = service.id === effectiveServiceId;
                 return (
                   <button
                     key={service.id}
                     type="button"
                     disabled={!available}
                     onClick={() => setServiceId(service.id)}
-                    className={`flex flex-col items-center rounded-md border px-2 py-2 text-xs font-medium transition-all disabled:cursor-not-allowed disabled:opacity-40 ${
+                    className={`flex flex-col items-start rounded-md border px-2.5 py-2 text-left text-xs font-medium transition-all disabled:cursor-not-allowed disabled:opacity-40 ${
                       selected
                         ? "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-50 dark:bg-zinc-50 dark:text-zinc-900"
                         : "border-zinc-200 bg-white text-zinc-800 hover:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:border-zinc-500"
                     }`}
                   >
-                    <span>{service.name}</span>
-                    <span className="mt-0.5 text-[10px] opacity-70">
-                      {service.durationMinutes} min
+                    <span className="leading-tight">{service.name}</span>
+                    <span className="mt-1 text-[10px] opacity-70">
+                      {service.durationMinutes} min · {formatPrice(service)}
                     </span>
                   </button>
                 );
               })}
             </div>
-            {!anyAvailable && (
+            {!anyServiceAvailable && (
               <p className="mt-2 text-xs text-rose-600 dark:text-rose-400">
-                No services fit in this time slot.
+                {techSelection === ANY_TECH
+                  ? "No tech is free for any service at this time."
+                  : "No services fit in this time slot."}
               </p>
             )}
           </div>
