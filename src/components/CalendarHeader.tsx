@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { addDays, format, isSameDay } from "date-fns";
 
 interface CalendarHeaderProps {
@@ -87,6 +88,27 @@ export function CalendarHeader({
         >
           Today
         </button>
+        <Link
+          href="/settings"
+          aria-label="Settings"
+          title="Settings"
+          className="flex h-9 w-9 items-center justify-center rounded-md border border-zinc-200 text-zinc-700 transition-colors hover:bg-zinc-100 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-900"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.75"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="h-4 w-4"
+            aria-hidden
+          >
+            <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" />
+            <path d="M19.4 13.6a1.6 1.6 0 0 0 .32 1.76l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.6 1.6 0 0 0-1.76-.32 1.6 1.6 0 0 0-1 1.46V19.5a2 2 0 1 1-4 0v-.07a1.6 1.6 0 0 0-1.05-1.46 1.6 1.6 0 0 0-1.76.32l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.6 1.6 0 0 0 .32-1.76 1.6 1.6 0 0 0-1.46-1H3.5a2 2 0 1 1 0-4h.07a1.6 1.6 0 0 0 1.46-1.05 1.6 1.6 0 0 0-.32-1.76l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.6 1.6 0 0 0 1.76.32H9.4a1.6 1.6 0 0 0 1-1.46V3.5a2 2 0 1 1 4 0v.07a1.6 1.6 0 0 0 1 1.46 1.6 1.6 0 0 0 1.76-.32l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.6 1.6 0 0 0-.32 1.76V9.4a1.6 1.6 0 0 0 1.46 1H20.5a2 2 0 1 1 0 4h-.07a1.6 1.6 0 0 0-1.46 1Z" />
+          </svg>
+        </Link>
       </div>
     </header>
   );
