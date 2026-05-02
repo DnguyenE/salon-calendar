@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AppearanceSection } from "@/src/components/settings/AppearanceSection";
 
 export const metadata = {
   title: "Settings · Salon Calendar",
@@ -33,16 +34,9 @@ export default function SettingsPage() {
         </h1>
       </header>
 
-      <main className="flex flex-1 items-start justify-center p-6">
-        <div className="w-full max-w-2xl">
-          <div className="rounded-md border border-dashed border-zinc-300 px-6 py-16 text-center dark:border-zinc-700">
-            <p className="text-sm font-medium text-zinc-700 dark:text-zinc-200">
-              Nothing here yet
-            </p>
-            <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-              Settings controls will live here.
-            </p>
-          </div>
+      <main className="flex flex-1 justify-center p-6">
+        <div className="w-full max-w-2xl space-y-6">
+          <AppearanceSection />
         </div>
       </main>
     </div>
