@@ -10,7 +10,8 @@ import {
   setSeconds,
 } from "date-fns";
 import type { Booking, BusinessHours, Service, Technician } from "@/src/types";
-import { BUSINESS_HOURS, getService } from "@/src/lib/config";
+import { BUSINESS_HOURS } from "@/src/lib/config";
+import { getServiceById } from "@/src/store/useServices";
 
 export function dayStart(date: Date, hours: BusinessHours = BUSINESS_HOURS): Date {
   return setMilliseconds(
@@ -70,7 +71,7 @@ export function minutesToRows(
 }
 
 export function bookingEnd(booking: Booking): Date {
-  const service = getService(booking.serviceId);
+  const service = getServiceById(booking.serviceId);
   const start = parseISO(booking.startISO);
   if (!service) return start;
   return addMinutes(start, service.durationMinutes);
@@ -169,7 +170,7 @@ export function pickAvailableTech(
   const minutesByTech = new Map<string, number>();
   for (const b of bookingsForDay) {
     if (b.id === ignoreBookingId) continue;
-    const svc = getService(b.serviceId);
+    const svc = getServiceById(b.serviceId);
     if (!svc) continue;
     minutesByTech.set(
       b.technicianId,

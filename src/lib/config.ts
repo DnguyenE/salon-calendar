@@ -6,7 +6,12 @@ export const BUSINESS_HOURS: BusinessHours = {
   slotMinutes: 15,
 };
 
-export const SERVICES: Service[] = [
+/**
+ * Initial services seeded into the user's local storage on first load.
+ * After that, services are edited via Settings and persisted by `useServices`.
+ * Class names here must match an entry in `servicePalette.ts`.
+ */
+export const DEFAULT_SERVICES: Service[] = [
   {
     id: "manicure",
     name: "Manicure",
@@ -19,7 +24,7 @@ export const SERVICES: Service[] = [
     name: "Shellac Manicure",
     durationMinutes: 30,
     priceCents: 3500,
-    colorClassName: "bg-rose-600/90 hover:bg-rose-600 text-white",
+    colorClassName: "bg-pink-500/90 hover:bg-pink-500 text-white",
   },
   {
     id: "pedicure",
@@ -33,7 +38,7 @@ export const SERVICES: Service[] = [
     name: "Shellac Pedicure",
     durationMinutes: 45,
     priceCents: 4500,
-    colorClassName: "bg-sky-600/90 hover:bg-sky-600 text-white",
+    colorClassName: "bg-blue-500/90 hover:bg-blue-500 text-white",
   },
   {
     id: "mani-pedi",
@@ -47,7 +52,7 @@ export const SERVICES: Service[] = [
     name: "Shellac Mani + Pedi",
     durationMinutes: 75,
     priceCents: 6500,
-    colorClassName: "bg-violet-600/90 hover:bg-violet-600 text-white",
+    colorClassName: "bg-fuchsia-500/90 hover:bg-fuchsia-500 text-white",
   },
   {
     id: "full-set-acrylic",
@@ -63,7 +68,7 @@ export const SERVICES: Service[] = [
     durationMinutes: 45,
     priceCents: 4500,
     priceSuffix: "+",
-    colorClassName: "bg-amber-400/90 hover:bg-amber-400 text-zinc-900",
+    colorClassName: "bg-orange-500/90 hover:bg-orange-500 text-white",
   },
   {
     id: "full-set-bio",
@@ -78,14 +83,14 @@ export const SERVICES: Service[] = [
     durationMinutes: 45,
     priceCents: 5500,
     priceSuffix: "+",
-    colorClassName: "bg-emerald-400/90 hover:bg-emerald-400 text-zinc-900",
+    colorClassName: "bg-teal-500/90 hover:bg-teal-500 text-white",
   },
   {
     id: "overlay-own-nail",
     name: "Overlay on Own Nail",
     durationMinutes: 60,
     priceCents: 6000,
-    colorClassName: "bg-fuchsia-500/90 hover:bg-fuchsia-500 text-white",
+    colorClassName: "bg-indigo-500/90 hover:bg-indigo-500 text-white",
   },
 ];
 
@@ -97,10 +102,6 @@ export const TECHNICIANS: Technician[] = [
   { id: "tech-5", name: "Tech 5" },
   { id: "tech-6", name: "Tech 6" },
 ];
-
-export function getService(id: string): Service | undefined {
-  return SERVICES.find((s) => s.id === id);
-}
 
 export function getTechnician(id: string): Technician | undefined {
   return TECHNICIANS.find((t) => t.id === id);

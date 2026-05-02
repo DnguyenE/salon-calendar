@@ -2,7 +2,7 @@
 
 import { format, parseISO } from "date-fns";
 import type { Booking } from "@/src/types";
-import { getService } from "@/src/lib/config";
+import { useServices } from "@/src/store/useServices";
 import { bookingEnd } from "@/src/lib/time";
 import { SLOT_HEIGHT_PX } from "@/src/lib/ui";
 import { BUSINESS_HOURS } from "@/src/lib/config";
@@ -14,7 +14,9 @@ interface BookingBlockProps {
 }
 
 export function BookingBlock({ booking, topRow, onClick }: BookingBlockProps) {
-  const service = getService(booking.serviceId);
+  const service = useServices((s) =>
+    s.services.find((sv) => sv.id === booking.serviceId),
+  );
   if (!service) return null;
 
   const heightRows = Math.round(service.durationMinutes / BUSINESS_HOURS.slotMinutes);

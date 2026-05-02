@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AppearanceSection } from "@/src/components/settings/AppearanceSection";
+import { ServicesSection } from "@/src/components/settings/ServicesSection";
 
 export const metadata = {
   title: "Settings · Salon Calendar",
@@ -37,6 +38,7 @@ export default function SettingsPage() {
       <main className="flex flex-1 justify-center p-6">
         <div className="w-full max-w-2xl space-y-6">
           <AppearanceSection />
+          <ServicesSection />
         </div>
       </main>
     </div>

@@ -5,6 +5,7 @@ import { addDays, isSameDay, parseISO } from "date-fns";
 import { v4 as uuid } from "uuid";
 import type { Booking } from "@/src/types";
 import { useBookings } from "@/src/store/useBookings";
+import { useServices } from "@/src/store/useServices";
 import { defaultSlotForDay } from "@/src/lib/time";
 import { CalendarHeader } from "./CalendarHeader";
 import { DayGrid } from "./DayGrid";
@@ -24,15 +25,21 @@ export function CalendarApp() {
   const [popover, setPopover] = useState<PopoverState | null>(null);
 
   const bookings = useBookings((s) => s.bookings);
-  const hydrated = useBookings((s) => s.hydrated);
-  const hydrate = useBookings((s) => s.hydrate);
+  const bookingsHydrated = useBookings((s) => s.hydrated);
+  const hydrateBookings = useBookings((s) => s.hydrate);
   const addBooking = useBookings((s) => s.addBooking);
   const updateBooking = useBookings((s) => s.updateBooking);
   const deleteBooking = useBookings((s) => s.deleteBooking);
 
+  const servicesHydrated = useServices((s) => s.hydrated);
+  const hydrateServices = useServices((s) => s.hydrate);
+
+  const hydrated = bookingsHydrated && servicesHydrated;
+
   useEffect(() => {
-    void hydrate();
-  }, [hydrate]);
+    void hydrateBookings();
+    hydrateServices();
+  }, [hydrateBookings, hydrateServices]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

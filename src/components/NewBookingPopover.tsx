@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { format, parseISO } from "date-fns";
 import type { Booking, Service } from "@/src/types";
-import { SERVICES, TECHNICIANS, getTechnician } from "@/src/lib/config";
+import { TECHNICIANS, getTechnician } from "@/src/lib/config";
+import { useServices } from "@/src/store/useServices";
 import {
   countAvailableTechs,
   pickAvailableTech,
@@ -69,6 +70,7 @@ export function NewBookingPopover({
   onUpdate,
   onDelete,
 }: NewBookingPopoverProps) {
+  const services = useServices((s) => s.services);
   const isEdit = state.mode === "edit";
 
   const initialSlotISO =
@@ -80,7 +82,7 @@ export function NewBookingPopover({
       : state.booking.technicianId;
 
   const initialServiceId =
-    state.mode === "edit" ? state.booking.serviceId : SERVICES[0]?.id ?? "";
+    state.mode === "edit" ? state.booking.serviceId : services[0]?.id ?? "";
   const initialName = state.mode === "edit" ? state.booking.customerName : "";
 
   const [selectedSlotISO, setSelectedSlotISO] = useState(initialSlotISO);
@@ -103,7 +105,7 @@ export function NewBookingPopover({
 
   const servicesWithAvailability = useMemo(
     () =>
-      SERVICES.map((s) => {
+      services.map((s) => {
         let available: boolean;
         if (techSelection === ANY_TECH) {
           available =
@@ -125,6 +127,7 @@ export function NewBookingPopover({
         return { service: s, available };
       }),
     [
+      services,
       start,
       techSelection,
       bookingsForDay,
@@ -144,8 +147,8 @@ export function NewBookingPopover({
   }, [servicesWithAvailability, serviceId]);
 
   const selectedService = useMemo(
-    () => SERVICES.find((s) => s.id === effectiveServiceId),
-    [effectiveServiceId],
+    () => services.find((s) => s.id === effectiveServiceId),
+    [services, effectiveServiceId],
   );
 
   const freeTechCount = useMemo(() => {
