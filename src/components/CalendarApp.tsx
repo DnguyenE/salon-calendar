@@ -13,7 +13,7 @@ import {
   NewBookingPopover,
   type PopoverState,
 } from "./NewBookingPopover";
-
+// test
 function startOfLocalDay(d: Date): Date {
   const copy = new Date(d);
   copy.setHours(0, 0, 0, 0);
