@@ -1,0 +1,10 @@
+# Code owners file — https://docs.github.com/en/repositories/managing-your-repositories-settings-and-security/managing-repository-settings/about-code-owners
+#
+# The owner listed here becomes a *required* reviewer on any PR that touches
+# matching files. Combined with the branch protection rule on `main`, this
+# means @DnguyenE must approve every PR before it can merge.
+#
+# Last matching pattern wins, so the catch-all at the top is the default
+# and more specific rules below would override it (none yet).
+
+* @DnguyenE
