@@ -4,7 +4,7 @@ name: Deploy Supabase migrations
 # This prevents accidental schema deploys from unrelated commits and keeps CI minutes low.
 on:
   push:
-    branches: [master]
+    branches: [main]
     paths:
       - "supabase/migrations/**"
       - "supabase/config.toml"
