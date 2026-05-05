@@ -1,16 +1,12 @@
 -- supabase/migrations/20260505064300_split_profile_name_drop_phone.sql
 --
--- Split `profiles.full_name` into `first_name` / `last_name`, and drop
--- `profiles.phone`. The profiles table is for staff/admin users, not
--- clients, so a phone number isn't needed here.
+-- Split `profiles.full_name` into `first_name` / `last_name`
 
 alter table public.profiles
   add column if not exists first_name text,
   add column if not exists last_name  text;
 
--- Best-effort backfill: split on the first space. Anything past the first
--- space lands in last_name; rows with a single token get a null last_name.
--- Existing rows are seed data we control, so this is fine.
+-- Best-effort backfill: split on the first space.
 update public.profiles
 set
   first_name = split_part(full_name, ' ', 1),
