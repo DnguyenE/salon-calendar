@@ -14,24 +14,24 @@
 --   2. Local CLI:       psql "$(supabase status -o env | grep DB_URL | cut -d= -f2-)" -f supabase/snippets/insert_admin_profile.sql
 --   3. Remote project:  psql "$SUPABASE_DB_URL" -f supabase/snippets/insert_admin_profile.sql
 
-insert into public.profiles (id, organization_id, role, email, first_name, last_name)
+insert into public.profiles (id, organization_id, role, email, full_name, phone)
 select
   u.id,
   o.id,
   'admin',
   u.email,
-  d.first_name,
-  d.last_name
+  d.full_name,
+  d.phone
 from (values
-  ('ethan@clientflow.com', 'Ethan', 'Dinh',  'clientflow'),
-  ('marko@clientflow.com', 'Marko', 'Zovic', 'clientflow')
-) as d(email, first_name, last_name, org_slug)
+  ('ethan@clientflow.com', 'Ethan Dinh',  '4372387324', 'clientflow'),
+  ('marko@clientflow.com', 'Marko Zovic', '6477614466', 'clientflow')
+) as d(email, full_name, phone, org_slug)
 join auth.users         u on u.email = d.email
 join public.organizations o on o.slug = d.org_slug
 on conflict (id) do update set
   organization_id = excluded.organization_id,
   role            = excluded.role,
   email           = excluded.email,
-  first_name      = excluded.first_name,
-  last_name       = excluded.last_name
+  full_name       = excluded.full_name,
+  phone           = excluded.phone
 returning *;
