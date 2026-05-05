@@ -64,6 +64,41 @@ begin
       last_name       = excluded.last_name;
   end loop;
 end $$;
+do $$
+declare
+  v_staff_names text[] := array['Ella', 'Tracy', 'Yen', 'Vanny', 'Trâm', 'Kim'];
+  v_name text;
+  v_user_id uuid;
+begin
+  foreach v_name in array v_staff_names
+  loop
+    -- Always generate a fresh user (no fake emails)
+    v_user_id := gen_random_uuid();
+
+    insert into auth.users (
+      instance_id, id, aud, role,
+      email_confirmed_at,
+      created_at, updated_at
+    )
+    values (
+      '00000000-0000-0000-0000-000000000000',
+      v_user_id,
+      'authenticated', 'authenticated',
+      now(),
+      now(), now()
+    );
+
+    insert into public.profiles (id, organization_id, role, first_name)
+    select
+      v_user_id,
+      o.id,
+      'staff',
+      v_name
+    from public.organizations o
+    where o.slug = 'clientflow'
+    on conflict (id) do nothing;
+  end loop;
+end $$;
 
 with org as (
   select id from public.organizations where slug = 'clientflow'
@@ -87,6 +122,53 @@ cross join (values
   ('Acrylic Fill',        45::smallint, 4500, '+'::char(1),  'bg-orange-500/90 hover:bg-orange-500 text-white',     7),
   ('Full Set Bio',        60::smallint, 6500, null::char(1), 'bg-emerald-500/90 hover:bg-emerald-500 text-white',   8),
   ('Bio Fill',            45::smallint, 5500, '+'::char(1),  'bg-teal-500/90 hover:bg-teal-500 text-white',         9),
-  ('Overlay on Own Nail', 60::smallint, 6000, null::char(1), 'bg-indigo-500/90 hover:bg-indigo-500 text-white',    10)
+  ('Overlay on Own Nail', 60::smallint, 6000, null::char(1), 'bg-indigo-500/90 hover:bg-indigo-500 text-white',    10),
+  ('Wax', 30::smallint, 2500, null::char(1), 'bg-yellow-500/90 hover:bg-yellow-500 text-white', 11)
 ) as s(name, duration_minutes, price_cents, price_suffix, color_class_name, display_order)
 on conflict (organization_id, lower(name)) do nothing;
+
+insert into public.staff_details (profile_id, organization_id, check_in_time)
+select
+  p.id,
+  p.organization_id,
+  '09:00'::time
+from public.profiles p
+where p.role = 'staff'
+on conflict (profile_id) do nothing;
+
+with org as (
+  select id from public.organizations where slug = 'clientflow'
+),
+staff as (
+  select p.id, p.first_name, p.organization_id
+  from public.profiles p
+  join org on p.organization_id = org.id
+  where p.role = 'staff'
+),
+services as (
+  select s.id, s.name, s.organization_id
+  from public.services s
+  join org on s.organization_id = org.id
+)
+insert into public.staff_services (staff_profile_id, service_id, organization_id)
+select
+  staff.id,
+  services.id,
+  staff.organization_id
+from staff
+join services on services.organization_id = staff.organization_id
+where
+  (
+    staff.first_name in ('Ella', 'Tracy', 'Yen')
+    and services.name <> 'Wax'
+  )
+  or
+  (
+    staff.first_name = 'Vanny'
+  )
+  or
+  (
+    staff.first_name in ('Trâm', 'Kim')
+    and services.name in ('Manicure', 'Pedicure', 'Mani + Pedi')
+  )
+on conflict do nothing;
