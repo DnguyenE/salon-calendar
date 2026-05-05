@@ -17,9 +17,9 @@ begin
   for v_admin in
     select *
     from (values
-      ('ethan@clientflow.com', 'Ethan Dinh',  '4372387324', 'clientflow'),
-      ('marko@clientflow.com', 'Marko Zovic', '6477614466', 'clientflow')
-    ) as t(email, full_name, phone, org_slug)
+      ('ethan@clientflow.com', 'Ethan', 'Dinh',  'clientflow'),
+      ('marko@clientflow.com', 'Marko', 'Zovic', 'clientflow')
+    ) as t(email, first_name, last_name, org_slug)
   loop
     select id into v_user_id
     from auth.users
@@ -52,15 +52,15 @@ begin
       );
     end if;
 
-    insert into public.profiles (id, organization_id, role, email, full_name, phone)
-    select v_user_id, o.id, 'admin', v_admin.email, v_admin.full_name, v_admin.phone
+    insert into public.profiles (id, organization_id, role, email, first_name, last_name)
+    select v_user_id, o.id, 'admin', v_admin.email, v_admin.first_name, v_admin.last_name
     from public.organizations o
     where o.slug = v_admin.org_slug
     on conflict (id) do update set
       organization_id = excluded.organization_id,
       role            = excluded.role,
       email           = excluded.email,
-      full_name       = excluded.full_name,
-      phone           = excluded.phone;
+      first_name      = excluded.first_name,
+      last_name       = excluded.last_name;
   end loop;
 end $$;
