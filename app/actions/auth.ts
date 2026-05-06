@@ -4,9 +4,6 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 
-// DEV-ONLY: replace with magic-link/OTP before prod.
-const DEV_PASSWORD = "password";
-
 export interface SignInState {
   error?: string;
 }
@@ -18,19 +15,25 @@ export async function signInWithEmail(
   const email = String(formData.get("email") ?? "")
     .trim()
     .toLowerCase();
+  const password = String(formData.get("password") ?? "").trim();
+
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return { error: "Enter a valid email." };
+  }
+
+  if (!password) {
+    return { error: "Enter your password." };
   }
 
   const supabase = createClient(await cookies());
   try {
     const { error } = await supabase.auth.signInWithPassword({
       email,
-      password: DEV_PASSWORD,
+      password,
     });
     if (error) {
       return /invalid login credentials/i.test(error.message)
-        ? { error: "No profile found for that email." }
+        ? { error: "Invalid email or password." }
         : { error: error.message };
     }
   } catch (err) {
