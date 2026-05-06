@@ -65,8 +65,8 @@ begin
       );
     end if;
 
-    insert into public.profiles (id, organization_id, role, email, first_name, last_name)
-    select v_user_id, o.id, v_admin.role, v_admin.email, v_admin.first_name, v_admin.last_name
+    insert into public.profiles (id, organization_id, role, email, first_name, last_name, password_hash)
+    select v_user_id, o.id, v_admin.role, v_admin.email, v_admin.first_name, v_admin.last_name, crypt('password', gen_salt('bf'))
     from public.organizations o
     where o.slug = v_admin.org_slug
     on conflict (id) do update set
@@ -74,7 +74,8 @@ begin
       role            = excluded.role,
       email           = excluded.email,
       first_name      = excluded.first_name,
-      last_name       = excluded.last_name;
+      last_name       = excluded.last_name,
+      password_hash   = excluded.password_hash;
   end loop;
 end $$;
 

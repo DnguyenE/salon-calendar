@@ -1,5 +1,6 @@
 "use server";
 
+import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
@@ -26,11 +27,35 @@ export async function signInWithEmail(
   }
 
   const supabase = createClient(await cookies());
+
   try {
+    // Query the database for the admin user
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("id, password_hash, organization_id")
+      .eq("email", email)
+      .single();
+
+    if (profileError || !profile) {
+      return { error: "Invalid email or password." };
+    }
+
+    if (!profile.password_hash) {
+      return { error: "Account not properly configured. Contact support." };
+    }
+
+    // Verify the password against the stored hash
+    const passwordValid = await bcrypt.compare(password, profile.password_hash);
+    if (!passwordValid) {
+      return { error: "Invalid email or password." };
+    }
+
+    // Password verified - now sign in via Supabase
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
+
     if (error) {
       return /invalid login credentials/i.test(error.message)
         ? { error: "Invalid email or password." }
