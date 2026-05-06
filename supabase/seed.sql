@@ -28,17 +28,26 @@ begin
     if v_user_id is null then
       v_user_id := gen_random_uuid();
 
+      -- GoTrue requires these token columns to be empty strings, not NULL.
       insert into auth.users (
         instance_id, id, aud, role, email, encrypted_password,
         email_confirmed_at, raw_app_meta_data, raw_user_meta_data,
-        created_at, updated_at
+        created_at, updated_at,
+        confirmation_token, recovery_token,
+        email_change_token_new, email_change_token_current, email_change,
+        phone_change_token, phone_change,
+        reauthentication_token
       )
       values (
         '00000000-0000-0000-0000-000000000000', v_user_id,
         'authenticated', 'authenticated',
         v_admin.email, crypt('password', gen_salt('bf')),
         now(), '{"provider":"email","providers":["email"]}', '{}',
-        now(), now()
+        now(), now(),
+        '', '',
+        '', '', '',
+        '', '',
+        ''
       );
 
       insert into auth.identities (

@@ -1,98 +1,10 @@
-import type { BusinessHours, Service, Technician } from "@/src/types";
+import type { BusinessHours, Technician } from "@/src/types";
 
 export const BUSINESS_HOURS: BusinessHours = {
   openHour: 10,
   closeHour: 18,
   slotMinutes: 15,
 };
-
-/**
- * Initial services seeded into the user's local storage on first load.
- * After that, services are edited via Settings and persisted by `useServices`.
- * Class names here must match an entry in `servicePalette.ts`.
- */
-export const DEFAULT_SERVICES: Service[] = [
-  {
-    id: "manicure",
-    name: "Manicure",
-    durationMinutes: 30,
-    priceCents: 2000,
-    colorClassName: "bg-rose-500/90 hover:bg-rose-500 text-white",
-  },
-  {
-    id: "shellac-manicure",
-    name: "Shellac Manicure",
-    durationMinutes: 30,
-    priceCents: 3500,
-    colorClassName: "bg-pink-500/90 hover:bg-pink-500 text-white",
-  },
-  {
-    id: "pedicure",
-    name: "Pedicure",
-    durationMinutes: 30,
-    priceCents: 3000,
-    colorClassName: "bg-sky-500/90 hover:bg-sky-500 text-white",
-  },
-  {
-    id: "shellac-pedicure",
-    name: "Shellac Pedicure",
-    durationMinutes: 45,
-    priceCents: 4500,
-    colorClassName: "bg-blue-500/90 hover:bg-blue-500 text-white",
-  },
-  {
-    id: "mani-pedi",
-    name: "Mani + Pedi",
-    durationMinutes: 60,
-    priceCents: 5000,
-    colorClassName: "bg-violet-500/90 hover:bg-violet-500 text-white",
-  },
-  {
-    id: "shellac-mani-pedi",
-    name: "Shellac Mani + Pedi",
-    durationMinutes: 75,
-    priceCents: 6500,
-    colorClassName: "bg-fuchsia-500/90 hover:bg-fuchsia-500 text-white",
-  },
-  {
-    id: "full-set-acrylic",
-    name: "Full Set Acrylic",
-    durationMinutes: 60,
-    priceCents: 5000,
-    priceSuffix: "+",
-    colorClassName: "bg-amber-500/90 hover:bg-amber-500 text-white",
-  },
-  {
-    id: "acrylic-fill",
-    name: "Acrylic Fill",
-    durationMinutes: 45,
-    priceCents: 4500,
-    priceSuffix: "+",
-    colorClassName: "bg-orange-500/90 hover:bg-orange-500 text-white",
-  },
-  {
-    id: "full-set-bio",
-    name: "Full Set Bio",
-    durationMinutes: 60,
-    priceCents: 6500,
-    colorClassName: "bg-emerald-500/90 hover:bg-emerald-500 text-white",
-  },
-  {
-    id: "bio-fill",
-    name: "Bio Fill",
-    durationMinutes: 45,
-    priceCents: 5500,
-    priceSuffix: "+",
-    colorClassName: "bg-teal-500/90 hover:bg-teal-500 text-white",
-  },
-  {
-    id: "overlay-own-nail",
-    name: "Overlay on Own Nail",
-    durationMinutes: 60,
-    priceCents: 6000,
-    colorClassName: "bg-indigo-500/90 hover:bg-indigo-500 text-white",
-  },
-];
 
 export const TECHNICIANS: Technician[] = [
   { id: "tech-1", name: "Tech 1" },

@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { v4 as uuid } from "uuid";
 import type { Service } from "@/src/types";
 import { useServices } from "@/src/store/useServices";
 import { useBookings } from "@/src/store/useBookings";
@@ -13,9 +12,14 @@ import {
 } from "@/src/lib/servicePalette";
 import { SettingsSection } from "./SettingsSection";
 
-export function ServicesSection() {
+interface ServicesSectionProps {
+  organizationId: string;
+}
+
+export function ServicesSection({ organizationId }: ServicesSectionProps) {
   const services = useServices((s) => s.services);
   const hydrated = useServices((s) => s.hydrated);
+  const error = useServices((s) => s.error);
   const hydrate = useServices((s) => s.hydrate);
   const addService = useServices((s) => s.addService);
   const updateService = useServices((s) => s.updateService);
@@ -25,7 +29,7 @@ export function ServicesSection() {
   const hydrateBookings = useBookings((s) => s.hydrate);
 
   useEffect(() => {
-    hydrate();
+    void hydrate();
     void hydrateBookings();
   }, [hydrate, hydrateBookings]);
 
@@ -42,13 +46,17 @@ export function ServicesSection() {
     const nextColor =
       SERVICE_COLORS.find((c) => !usedColors.has(c.className)) ??
       DEFAULT_SERVICE_COLOR;
-    addService({
-      id: uuid(),
-      name: "New service",
-      durationMinutes: BUSINESS_HOURS.slotMinutes * 2,
-      priceCents: 0,
-      colorClassName: nextColor.className,
-    });
+    const nextOrder = Math.max(-1, ...services.map((s) => s.displayOrder)) + 1;
+    void addService(
+      {
+        name: "New service",
+        durationMinutes: BUSINESS_HOURS.slotMinutes * 2,
+        priceCents: 0,
+        colorClassName: nextColor.className,
+        displayOrder: nextOrder,
+      },
+      organizationId,
+    );
   }
 
   function handleRemove(service: Service) {
@@ -58,7 +66,7 @@ export function ServicesSection() {
         ? `Remove "${service.name}"? ${count} existing booking${count === 1 ? "" : "s"} use this service and will stop displaying.`
         : `Remove "${service.name}"?`;
     if (window.confirm(message)) {
-      removeService(service.id);
+      void removeService(service.id);
     }
   }
 
@@ -67,6 +75,15 @@ export function ServicesSection() {
       title="Services"
       description="Edit names, durations, prices, and colors. Add or remove services as needed."
     >
+      {error && (
+        <p
+          role="alert"
+          className="mb-2 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700 dark:border-rose-900 dark:bg-rose-950 dark:text-rose-300"
+        >
+          {error}
+        </p>
+      )}
+
       {!hydrated ? (
         <p className="text-xs text-zinc-500 dark:text-zinc-400">Loading…</p>
       ) : (
@@ -76,7 +93,7 @@ export function ServicesSection() {
               key={service.id}
               service={service}
               bookingCount={bookingCounts.get(service.id) ?? 0}
-              onChange={updateService}
+              onChange={(s) => void updateService(s)}
               onRemove={() => handleRemove(service)}
             />
           ))}

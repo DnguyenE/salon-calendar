@@ -1,47 +1,71 @@
 import type { Service } from "@/src/types";
+import { createClient } from "@/utils/supabase/client";
 
-export interface ServicesService {
-  loadAll(): Service[] | null;
-  saveAll(services: Service[]): void;
+interface ServiceRow {
+  id: string;
+  name: string;
+  duration_minutes: number;
+  price_cents: number;
+  price_suffix: "+" | null;
+  color_class_name: string;
+  display_order: number;
 }
 
-const STORAGE_KEY = "salon-calendar:services:v1";
+const mapRow = (row: ServiceRow): Service => ({
+  id: row.id,
+  name: row.name,
+  durationMinutes: row.duration_minutes,
+  priceCents: row.price_cents,
+  priceSuffix: row.price_suffix === "+" ? "+" : undefined,
+  colorClassName: row.color_class_name,
+  displayOrder: row.display_order,
+});
 
-function isService(value: unknown): value is Service {
-  if (!value || typeof value !== "object") return false;
-  const v = value as Record<string, unknown>;
-  return (
-    typeof v.id === "string" &&
-    typeof v.name === "string" &&
-    typeof v.durationMinutes === "number" &&
-    typeof v.priceCents === "number" &&
-    typeof v.colorClassName === "string" &&
-    (v.priceSuffix === undefined || v.priceSuffix === "+")
-  );
-}
+const toRow = (s: Omit<Service, "id">) => ({
+  name: s.name,
+  duration_minutes: s.durationMinutes,
+  price_cents: s.priceCents,
+  price_suffix: s.priceSuffix ?? null,
+  color_class_name: s.colorClassName,
+  display_order: s.displayOrder,
+});
 
-export const localStorageServicesService: ServicesService = {
-  loadAll() {
-    if (typeof window === "undefined") return null;
-    try {
-      const raw = window.localStorage.getItem(STORAGE_KEY);
-      if (!raw) return null;
-      const parsed = JSON.parse(raw);
-      if (!Array.isArray(parsed)) return null;
-      return parsed.filter(isService);
-    } catch {
-      return null;
-    }
+export const servicesService = {
+  async loadAll(): Promise<Service[]> {
+    const { data, error } = await createClient()
+      .from("services")
+      .select("*")
+      .order("display_order");
+    if (error) throw error;
+    return (data ?? []).map((r) => mapRow(r as ServiceRow));
   },
 
-  saveAll(services) {
-    if (typeof window === "undefined") return;
-    try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(services));
-    } catch {
-      // ignore storage failures (private mode, quota, etc.)
-    }
+  async add(
+    input: Omit<Service, "id">,
+    organizationId: string,
+  ): Promise<Service> {
+    const { data, error } = await createClient()
+      .from("services")
+      .insert({ ...toRow(input), organization_id: organizationId })
+      .select()
+      .single();
+    if (error) throw error;
+    return mapRow(data as ServiceRow);
+  },
+
+  async update(service: Service): Promise<void> {
+    const { error } = await createClient()
+      .from("services")
+      .update(toRow(service))
+      .eq("id", service.id);
+    if (error) throw error;
+  },
+
+  async remove(id: string): Promise<void> {
+    const { error } = await createClient()
+      .from("services")
+      .delete()
+      .eq("id", id);
+    if (error) throw error;
   },
 };
-
-export const servicesService: ServicesService = localStorageServicesService;

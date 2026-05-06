@@ -5,6 +5,7 @@ export interface Service {
   priceCents: number;
   priceSuffix?: "+";
   colorClassName: string;
+  displayOrder: number;
 }
 
 export interface Technician {

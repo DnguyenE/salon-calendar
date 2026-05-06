@@ -38,7 +38,7 @@ export function CalendarApp() {
 
   useEffect(() => {
     void hydrateBookings();
-    hydrateServices();
+    void hydrateServices();
   }, [hydrateBookings, hydrateServices]);
 
   useEffect(() => {
