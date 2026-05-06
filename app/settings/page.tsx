@@ -5,6 +5,7 @@ import { createClient } from "@/utils/supabase/server";
 import { signOut } from "@/app/actions/auth";
 import { AppearanceSection } from "@/src/components/settings/AppearanceSection";
 import { ServicesSection } from "@/src/components/settings/ServicesSection";
+import { StaffSection } from "@/src/components/settings/StaffSection";
 
 export const metadata = {
   title: "Settings · Salon Calendar",
@@ -71,6 +72,7 @@ export default async function SettingsPage() {
         <div className="w-full max-w-2xl space-y-6">
           <AppearanceSection />
           <ServicesSection organizationId={profile.organization_id} />
+          <StaffSection />
         </div>
       </main>
     </div>

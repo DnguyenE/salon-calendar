@@ -5,9 +5,9 @@ insert into public.organizations (name, slug)
 values ('ClientFlow', 'clientflow')
 on conflict (slug) do nothing;
 
--- Local-dev admin users for ClientFlow.
--- All seeded admins share the same trivial password ('password'); these
--- credentials only ever exist in your local DB. To add another admin, append
+-- Local-dev users for ClientFlow (admins + staff technicians).
+-- All seeded users share the same trivial password ('password'); these
+-- credentials only ever exist in your local DB. To add another user, append
 -- a row to the values list below.
 do $$
 declare
@@ -17,9 +17,13 @@ begin
   for v_admin in
     select *
     from (values
-      ('ethan@clientflow.com', 'Ethan', 'Dinh',  'clientflow'),
-      ('marko@clientflow.com', 'Marko', 'Zovic', 'clientflow')
-    ) as t(email, first_name, last_name, org_slug)
+      ('ethan@clientflow.com', 'Ethan', 'Dinh',  'admin', 'clientflow'),
+      ('marko@clientflow.com', 'Marko', 'Zovic', 'admin', 'clientflow'),
+      ('ella@clientflow.com',  'Ella',  null,    'staff', 'clientflow'),
+      ('tracy@clientflow.com', 'Tracy', null,    'staff', 'clientflow'),
+      ('yen@clientflow.com',   'Yen',   null,    'staff', 'clientflow'),
+      ('vanny@clientflow.com', 'Vanny', null,    'staff', 'clientflow')
+    ) as t(email, first_name, last_name, role, org_slug)
   loop
     select id into v_user_id
     from auth.users
@@ -62,7 +66,7 @@ begin
     end if;
 
     insert into public.profiles (id, organization_id, role, email, first_name, last_name)
-    select v_user_id, o.id, 'admin', v_admin.email, v_admin.first_name, v_admin.last_name
+    select v_user_id, o.id, v_admin.role, v_admin.email, v_admin.first_name, v_admin.last_name
     from public.organizations o
     where o.slug = v_admin.org_slug
     on conflict (id) do update set
@@ -99,3 +103,27 @@ cross join (values
   ('Overlay on Own Nail', 60::smallint, 6000, null::char(1), 'bg-indigo-500/90 hover:bg-indigo-500 text-white',    10)
 ) as s(name, duration_minutes, price_cents, price_suffix, color_class_name, display_order)
 on conflict (organization_id, lower(name)) do nothing;
+
+-- Demo: Ella + Tracy do Manicure only; Yen + Vanny do Manicure + Pedicure.
+with org as (
+  select id from public.organizations where slug = 'clientflow'
+),
+staff as (
+  select p.id, p.first_name
+  from public.profiles p
+  join org on p.organization_id = org.id
+  where p.role = 'staff'
+),
+svc as (
+  select s.id, s.name
+  from public.services s
+  join org on s.organization_id = org.id
+)
+insert into public.technician_services (technician_id, service_id)
+select staff.id, svc.id
+from staff
+join svc on
+  (staff.first_name in ('Ella', 'Tracy') and svc.name = 'Manicure')
+  or
+  (staff.first_name in ('Yen', 'Vanny') and svc.name in ('Manicure', 'Pedicure'))
+on conflict do nothing;

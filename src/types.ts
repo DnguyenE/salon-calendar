@@ -10,7 +10,14 @@ export interface Service {
 
 export interface Technician {
   id: string;
-  name: string;
+  firstName: string;
+  lastName: string | null;
+  email: string | null;
+  serviceIds: string[];
+}
+
+export function technicianName(t: Technician): string {
+  return [t.firstName, t.lastName].filter(Boolean).join(" ").trim();
 }
 
 export interface Booking {

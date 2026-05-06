@@ -1,7 +1,7 @@
 "use client";
 
 import type { Booking } from "@/src/types";
-import { TECHNICIANS } from "@/src/lib/config";
+import { useStaff } from "@/src/store/useStaff";
 import {
   formatHourLabel,
   minutesSinceDayStart,
@@ -25,6 +25,7 @@ export function DayGrid({
   onBookingClick,
 }: DayGridProps) {
   const slots = slotsForDay(date);
+  const technicians = useStaff((s) => s.technicians);
 
   return (
     <div className="flex flex-1 overflow-auto bg-white dark:bg-zinc-950">
@@ -52,7 +53,7 @@ export function DayGrid({
       </div>
 
       <div className="flex min-w-0 flex-1">
-        {TECHNICIANS.map((technician) => (
+        {technicians.map((technician) => (
           <TechnicianColumn
             key={technician.id}
             technician={technician}
