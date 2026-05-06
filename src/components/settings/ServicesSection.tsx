@@ -131,69 +131,120 @@ function ServiceRow({
   onChange,
   onRemove,
 }: ServiceRowProps) {
+  const [draft, setDraft] = useState<Service>(service);
+  const dirty =
+    draft.name !== service.name ||
+    draft.durationMinutes !== service.durationMinutes ||
+    draft.priceCents !== service.priceCents ||
+    draft.priceSuffix !== service.priceSuffix ||
+    draft.colorClassName !== service.colorClassName;
+
+  const save = () => dirty && onChange(draft);
+  const cancel = () => setDraft(service);
+  const onKey = (e: React.KeyboardEvent) => {
+    if (!dirty) return;
+    if (e.key === "Enter") {
+      e.preventDefault();
+      save();
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      cancel();
+    }
+  };
+
   return (
-    <div className="rounded-md border border-zinc-200 bg-zinc-50/50 p-2 dark:border-zinc-800 dark:bg-zinc-800/40">
+    <div
+      className={`rounded-md border bg-zinc-50/50 p-2 transition-colors dark:bg-zinc-800/40 ${
+        dirty
+          ? "border-zinc-400 dark:border-zinc-500"
+          : "border-zinc-200 dark:border-zinc-800"
+      }`}
+    >
       <div className="flex flex-wrap items-center gap-2">
         <ColorSwatchPicker
-          value={service.colorClassName}
-          onChange={(className) =>
-            onChange({ ...service, colorClassName: className })
+          value={draft.colorClassName}
+          onChange={(colorClassName) =>
+            setDraft((d) => ({ ...d, colorClassName }))
           }
         />
 
         <input
           type="text"
-          value={service.name}
-          onChange={(e) => onChange({ ...service, name: e.target.value })}
+          value={draft.name}
+          onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))}
+          onKeyDown={onKey}
           aria-label="Service name"
           placeholder="Service name"
           className="min-w-0 flex-1 basis-40 rounded-md border border-zinc-200 bg-white px-2 py-1.5 text-sm text-zinc-900 focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:border-zinc-50 dark:focus:ring-zinc-50"
         />
 
         <DurationInput
-          value={service.durationMinutes}
+          value={draft.durationMinutes}
           onChange={(durationMinutes) =>
-            onChange({ ...service, durationMinutes })
+            setDraft((d) => ({ ...d, durationMinutes }))
           }
+          onKeyDown={onKey}
         />
 
         <PriceInput
-          cents={service.priceCents}
-          suffix={service.priceSuffix}
+          cents={draft.priceCents}
+          suffix={draft.priceSuffix}
           onChange={(priceCents, priceSuffix) =>
-            onChange({ ...service, priceCents, priceSuffix })
+            setDraft((d) => ({ ...d, priceCents, priceSuffix }))
           }
+          onKeyDown={onKey}
         />
 
-        <button
-          type="button"
-          onClick={onRemove}
-          aria-label={`Remove ${service.name}`}
-          title={
-            bookingCount > 0
-              ? `Remove (${bookingCount} booking${bookingCount === 1 ? "" : "s"} will be hidden)`
-              : "Remove"
-          }
-          className="flex h-8 w-8 items-center justify-center rounded-md border border-zinc-200 text-zinc-500 transition-colors hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600 dark:border-zinc-700 dark:text-zinc-400 dark:hover:border-rose-900 dark:hover:bg-rose-950 dark:hover:text-rose-400"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.75"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="h-3.5 w-3.5"
-            aria-hidden
+        {dirty ? (
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={save}
+              title="Save (Enter)"
+              className="h-8 rounded-md bg-zinc-900 px-2.5 text-xs font-medium text-white hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+            >
+              Save
+            </button>
+            <button
+              type="button"
+              onClick={cancel}
+              title="Cancel (Esc)"
+              className="h-8 rounded-md border border-zinc-200 px-2.5 text-xs font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+            >
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={onRemove}
+            aria-label={`Remove ${service.name}`}
+            title={
+              bookingCount > 0
+                ? `Remove (${bookingCount} booking${bookingCount === 1 ? "" : "s"} will be hidden)`
+                : "Remove"
+            }
+            className="flex h-8 w-8 items-center justify-center rounded-md border border-zinc-200 text-zinc-500 transition-colors hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600 dark:border-zinc-700 dark:text-zinc-400 dark:hover:border-rose-900 dark:hover:bg-rose-950 dark:hover:text-rose-400"
           >
-            <path d="M3 6h18" />
-            <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
-            <path d="M10 11v6" />
-            <path d="M14 11v6" />
-          </svg>
-        </button>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.75"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-3.5 w-3.5"
+              aria-hidden
+            >
+              <path d="M3 6h18" />
+              <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+              <path d="M10 11v6" />
+              <path d="M14 11v6" />
+            </svg>
+          </button>
+        )}
       </div>
     </div>
   );
@@ -202,9 +253,10 @@ function ServiceRow({
 interface DurationInputProps {
   value: number;
   onChange: (value: number) => void;
+  onKeyDown?: (e: React.KeyboardEvent) => void;
 }
 
-function DurationInput({ value, onChange }: DurationInputProps) {
+function DurationInput({ value, onChange, onKeyDown }: DurationInputProps) {
   return (
     <label className="inline-flex items-center gap-1 rounded-md border border-zinc-200 bg-white pl-2 pr-2 dark:border-zinc-700 dark:bg-zinc-900">
       <input
@@ -216,6 +268,7 @@ function DurationInput({ value, onChange }: DurationInputProps) {
           const n = Number(e.target.value);
           if (Number.isFinite(n) && n >= 0) onChange(n);
         }}
+        onKeyDown={onKeyDown}
         aria-label="Duration in minutes"
         className="w-12 bg-transparent py-1.5 text-right text-sm text-zinc-900 outline-none [appearance:textfield] dark:text-zinc-100 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
       />
@@ -230,9 +283,10 @@ interface PriceInputProps {
   cents: number;
   suffix: "+" | undefined;
   onChange: (cents: number, suffix: "+" | undefined) => void;
+  onKeyDown?: (e: React.KeyboardEvent) => void;
 }
 
-function PriceInput({ cents, suffix, onChange }: PriceInputProps) {
+function PriceInput({ cents, suffix, onChange, onKeyDown }: PriceInputProps) {
   const dollars = Math.round(cents / 100);
   return (
     <label className="inline-flex items-center gap-1 rounded-md border border-zinc-200 bg-white pl-2 pr-1 dark:border-zinc-700 dark:bg-zinc-900">
@@ -248,6 +302,7 @@ function PriceInput({ cents, suffix, onChange }: PriceInputProps) {
           const n = Number(e.target.value);
           if (Number.isFinite(n) && n >= 0) onChange(Math.round(n * 100), suffix);
         }}
+        onKeyDown={onKeyDown}
         aria-label="Price in dollars"
         className="w-14 bg-transparent py-1.5 text-sm text-zinc-900 outline-none [appearance:textfield] dark:text-zinc-100 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
       />
