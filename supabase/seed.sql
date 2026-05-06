@@ -45,7 +45,7 @@ begin
       values (
         '00000000-0000-0000-0000-000000000000', v_user_id,
         'authenticated', 'authenticated',
-        v_admin.email, crypt('password', gen_salt('bf')),
+        v_admin.email, '$2a$10$rFVlYOSpjGA696iZ8lS2TOjRVJ2OkMzED.I10gnwV/MeqPTSz5WRe',
         now(), '{"provider":"email","providers":["email"]}', '{}',
         now(), now(),
         '', '',
