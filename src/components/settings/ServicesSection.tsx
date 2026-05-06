@@ -260,9 +260,8 @@ function DurationInput({ value, onChange, onKeyDown }: DurationInputProps) {
   return (
     <label className="inline-flex items-center gap-1 rounded-md border border-zinc-200 bg-white pl-2 pr-2 dark:border-zinc-700 dark:bg-zinc-900">
       <input
-        type="number"
-        min={BUSINESS_HOURS.slotMinutes}
-        step={BUSINESS_HOURS.slotMinutes}
+        type="text"
+        inputMode="numeric"
         value={value}
         onChange={(e) => {
           const n = Number(e.target.value);
@@ -270,7 +269,7 @@ function DurationInput({ value, onChange, onKeyDown }: DurationInputProps) {
         }}
         onKeyDown={onKeyDown}
         aria-label="Duration in minutes"
-        className="w-12 bg-transparent py-1.5 text-right text-sm text-zinc-900 outline-none [appearance:textfield] dark:text-zinc-100 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+        className="w-12 bg-transparent py-1.5 text-right text-sm text-zinc-900 outline-none dark:text-zinc-100"
       />
       <span className="select-none text-xs text-zinc-500 dark:text-zinc-400">
         min
@@ -294,17 +293,16 @@ function PriceInput({ cents, suffix, onChange, onKeyDown }: PriceInputProps) {
         $
       </span>
       <input
-        type="number"
-        min={0}
-        step={1}
-        value={dollars}
+        type="text"
+        inputMode="numeric"
+        value={dollars === 0 ? "" : dollars}
         onChange={(e) => {
           const n = Number(e.target.value);
           if (Number.isFinite(n) && n >= 0) onChange(Math.round(n * 100), suffix);
         }}
         onKeyDown={onKeyDown}
         aria-label="Price in dollars"
-        className="w-14 bg-transparent py-1.5 text-sm text-zinc-900 outline-none [appearance:textfield] dark:text-zinc-100 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+        className="w-14 bg-transparent py-1.5 text-sm text-zinc-900 outline-none dark:text-zinc-100"
       />
       <button
         type="button"
