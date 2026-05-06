@@ -1,13 +1,10 @@
-create extension if not exists "pgcrypto";
-
 -- Staff-specific details (1:1 with profiles)
 create table if not exists public.staff_details (
   profile_id     uuid primary key references public.profiles(id) on delete cascade,
 
   organization_id uuid not null references public.organizations(id) on delete cascade,
 
-  check_in_time  time,
-  points         integer not null default 0 check (points >= 0),
+  check_in_time  timestamptz,
 
   created_at     timestamptz not null default now(),
   updated_at     timestamptz not null default now()
@@ -53,3 +50,5 @@ create policy "staff_details_delete_admin"
   on public.staff_details
   for delete
   using (public.has_role_in_org(array['admin'], staff_details.organization_id));
+
+  

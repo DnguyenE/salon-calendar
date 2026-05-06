@@ -1,11 +1,7 @@
-create extension if not exists "pgcrypto";
-
 -- Many-to-many: staff <-> services
 create table if not exists public.staff_services (
   staff_profile_id uuid not null references public.staff_details(profile_id) on delete cascade,
   service_id       uuid not null references public.services(id) on delete cascade,
-
-  organization_id  uuid not null references public.organizations(id) on delete cascade,
 
   created_at       timestamptz not null default now(),
 
