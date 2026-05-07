@@ -6,6 +6,7 @@ import type { Booking, Service, Technician } from "@/src/types";
 import { useServices } from "@/src/store/useServices";
 import {
   countAvailableTechs,
+  pickAvailableTechByPoints,
   pickAvailableTech,
   rangeOverlapsBooking,
   slotsForDay,
@@ -212,11 +213,12 @@ export function NewBookingPopover({
     if (state.mode === "new") {
       let resolvedTechId: string;
       if (techSelection === ANY_TECH) {
-        const tech = pickAvailableTech(
+        const tech = pickAvailableTechByPoints(
           start,
           selectedService.durationMinutes,
           bookingsForDay,
           techsOfferingSelected,
+          ignoreBookingId,
         );
         if (!tech) return;
         resolvedTechId = tech.id;
@@ -324,6 +326,12 @@ export function NewBookingPopover({
                 {techsOfferingSelected.length === 1 ? "" : "s"} free for this
                 service at this time
               </p>
+              {techSelection === ANY_TECH && (
+                <p className="mt-1 text-[11px] text-zinc-500 dark:text-zinc-400">
+                  Any tech picks the available technician with the lowest daily
+                  points; check-in order breaks ties.
+                </p>
+              )}
             </div>
           )}
 

@@ -213,3 +213,56 @@ export function countAvailableTechs(
   }
   return count;
 }
+
+export function servicePoints(serviceName: string): number {
+  const normalized = serviceName.trim().toLowerCase();
+  return normalized.includes("mani") && normalized.includes("pedi") ? 2 : 1;
+}
+
+export function dailyPointsByTechnician(bookingsForDay: Booking[]): Map<string, number> {
+  const points = new Map<string, number>();
+  for (const booking of bookingsForDay) {
+    const service = getServiceById(booking.serviceId);
+    const bookingPoints = service ? servicePoints(service.name) : 1;
+    points.set(
+      booking.technicianId,
+      (points.get(booking.technicianId) ?? 0) + bookingPoints,
+    );
+  }
+  return points;
+}
+
+export function pickAvailableTechByPoints(
+  start: Date,
+  durationMinutes: number,
+  bookingsForDay: Booking[],
+  technicians: Technician[],
+  ignoreBookingId?: string,
+  hours: BusinessHours = BUSINESS_HOURS,
+): Technician | null {
+  const end = addMinutes(start, durationMinutes);
+  if (end.getTime() > dayEnd(start, hours).getTime()) return null;
+
+  const candidates = technicians.filter((tech) =>
+    isTechFreeForRange(
+      tech.id,
+      start,
+      durationMinutes,
+      bookingsForDay,
+      ignoreBookingId,
+    ),
+  );
+  if (candidates.length === 0) return null;
+
+  const pointsByTech = dailyPointsByTechnician(
+    bookingsForDay.filter((b) => b.id !== ignoreBookingId),
+  );
+  const orderIndex = new Map(technicians.map((t, idx) => [t.id, idx]));
+
+  return [...candidates].sort((a, b) => {
+    const aPoints = pointsByTech.get(a.id) ?? 0;
+    const bPoints = pointsByTech.get(b.id) ?? 0;
+    if (aPoints !== bPoints) return aPoints - bPoints;
+    return (orderIndex.get(a.id) ?? 0) - (orderIndex.get(b.id) ?? 0);
+  })[0];
+}
