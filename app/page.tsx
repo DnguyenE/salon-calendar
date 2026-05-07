@@ -15,12 +15,18 @@ export default async function Home() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role")
+    .select("organization_id, role")
     .eq("id", user.id)
     .single();
   if (!profile) redirect("/login");
 
   const viewerRole: ProfileRole = profile.role === "admin" ? "admin" : "staff";
+  const { data: organization } = await supabase
+    .from("organizations")
+    .select("name")
+    .eq("id", profile.organization_id)
+    .single();
+  const orgName = organization?.name ?? "Salon Calendar";
 
-  return <CalendarApp viewerRole={viewerRole} />;
+  return <CalendarApp viewerRole={viewerRole} orgName={orgName} />;
 }

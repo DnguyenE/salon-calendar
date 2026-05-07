@@ -22,9 +22,10 @@ function startOfLocalDay(d: Date): Date {
 
 interface CalendarAppProps {
   viewerRole: "admin" | "staff";
+  orgName: string;
 }
 
-export function CalendarApp({ viewerRole }: CalendarAppProps) {
+export function CalendarApp({ viewerRole, orgName }: CalendarAppProps) {
   const [date, setDate] = useState<Date>(() => startOfLocalDay(new Date()));
   const [popover, setPopover] = useState<PopoverState | null>(null);
 
@@ -168,6 +169,7 @@ export function CalendarApp({ viewerRole }: CalendarAppProps) {
   return (
     <div className="flex min-h-screen flex-col bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
       <CalendarHeader
+        orgName={orgName}
         date={date}
         onChange={setDate}
         onNewAppointment={handleNewAppointment}
