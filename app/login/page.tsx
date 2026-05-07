@@ -23,7 +23,7 @@ export default async function LoginPage() {
           Sign in
         </h1>
         <p className="mb-4 text-xs text-zinc-500 dark:text-zinc-400">
-          Enter the email associated with your organization profile.
+          Enter your email and password to access your salon account.
         </p>
         <SignInForm />
       </div>

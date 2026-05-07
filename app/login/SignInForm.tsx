@@ -28,6 +28,20 @@ export function SignInForm() {
         />
       </label>
 
+      <label className="block">
+        <span className="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400">
+          Password
+        </span>
+        <input
+          type="password"
+          name="password"
+          required
+          autoComplete="current-password"
+          placeholder="••••••••"
+          className="w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:border-zinc-50 dark:focus:ring-zinc-50"
+        />
+      </label>
+
       {state?.error && (
         <p
           aria-live="polite"
@@ -42,7 +56,7 @@ export function SignInForm() {
         disabled={pending}
         className="inline-flex w-full items-center justify-center rounded-md bg-zinc-900 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
       >
-        {pending ? "Signing in…" : "Continue"}
+        {pending ? "Signing in…" : "Sign in"}
       </button>
     </form>
   );

@@ -31,7 +31,7 @@ export function TechnicianColumn({
   return (
     <div className="flex min-w-[140px] flex-1 flex-col border-r border-zinc-200 last:border-r-0 dark:border-zinc-800">
       <div className="sticky top-0 z-10 flex h-12 items-center justify-center border-b border-zinc-200 bg-white px-2 text-sm font-semibold text-zinc-900 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50">
-        {technician.name}
+        {technician.firstName}
       </div>
 
       <div
@@ -54,7 +54,7 @@ export function TechnicianColumn({
               key={slot.toISOString()}
               type="button"
               onClick={() => onSlotClick(technician.id, slot)}
-              aria-label={`Book at ${slot.toISOString()} for ${technician.name}`}
+              aria-label={`Book at ${slot.toISOString()} for ${technician.firstName}`}
               className={`absolute inset-x-0 cursor-pointer transition-colors hover:bg-zinc-900/5 dark:hover:bg-white/5 ${borderClass}`}
               style={{
                 top: idx * SLOT_HEIGHT_PX,

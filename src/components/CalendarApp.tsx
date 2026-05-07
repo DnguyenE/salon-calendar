@@ -6,6 +6,7 @@ import { v4 as uuid } from "uuid";
 import type { Booking } from "@/src/types";
 import { useBookings } from "@/src/store/useBookings";
 import { useServices } from "@/src/store/useServices";
+import { useStaff } from "@/src/store/useStaff";
 import { defaultSlotForDay } from "@/src/lib/time";
 import { CalendarHeader } from "./CalendarHeader";
 import { DayGrid } from "./DayGrid";
@@ -34,12 +35,16 @@ export function CalendarApp() {
   const servicesHydrated = useServices((s) => s.hydrated);
   const hydrateServices = useServices((s) => s.hydrate);
 
-  const hydrated = bookingsHydrated && servicesHydrated;
+  const staffHydrated = useStaff((s) => s.hydrated);
+  const hydrateStaff = useStaff((s) => s.hydrate);
+
+  const hydrated = bookingsHydrated && servicesHydrated && staffHydrated;
 
   useEffect(() => {
     void hydrateBookings();
     void hydrateServices();
-  }, [hydrateBookings, hydrateServices]);
+    void hydrateStaff();
+  }, [hydrateBookings, hydrateServices, hydrateStaff]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
