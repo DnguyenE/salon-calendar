@@ -21,6 +21,7 @@ interface DayGridProps {
   bookings: Booking[];
   onSlotClick: (technicianId: string, slot: Date) => void;
   onBookingClick: (bookingId: string) => void;
+  canCreateFromSlots?: boolean;
 }
 
 export function DayGrid({
@@ -28,6 +29,7 @@ export function DayGrid({
   bookings,
   onSlotClick,
   onBookingClick,
+  canCreateFromSlots = true,
 }: DayGridProps) {
   const slots = slotsForDay(date);
   const technicians = useStaff((s) => s.technicians);
@@ -90,6 +92,7 @@ export function DayGrid({
             )}
             onSlotClick={onSlotClick}
             onBookingClick={onBookingClick}
+            canCreateFromSlots={canCreateFromSlots}
             nowLineTop={showNowLine ? nowLineTop : null}
           />
         ))}

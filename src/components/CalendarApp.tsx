@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { addDays, isSameDay, parseISO } from "date-fns";
-import { v4 as uuid } from "uuid";
 import type { Booking } from "@/src/types";
 import { useBookings } from "@/src/store/useBookings";
 import { useServices } from "@/src/store/useServices";
@@ -14,14 +13,18 @@ import {
   NewBookingPopover,
   type PopoverState,
 } from "./NewBookingPopover";
-// test
+
 function startOfLocalDay(d: Date): Date {
   const copy = new Date(d);
   copy.setHours(0, 0, 0, 0);
   return copy;
 }
 
-export function CalendarApp() {
+interface CalendarAppProps {
+  viewerRole: "admin" | "staff";
+}
+
+export function CalendarApp({ viewerRole }: CalendarAppProps) {
   const [date, setDate] = useState<Date>(() => startOfLocalDay(new Date()));
   const [popover, setPopover] = useState<PopoverState | null>(null);
 
@@ -33,6 +36,7 @@ export function CalendarApp() {
   const deleteBooking = useBookings((s) => s.deleteBooking);
 
   const servicesHydrated = useServices((s) => s.hydrated);
+  const services = useServices((s) => s.services);
   const hydrateServices = useServices((s) => s.hydrate);
 
   const staffHydrated = useStaff((s) => s.hydrated);
@@ -41,6 +45,7 @@ export function CalendarApp() {
 
   const hydrated = bookingsHydrated && servicesHydrated && staffHydrated;
   const hasStaff = technicians.length > 0;
+  const canMutateBookings = viewerRole === "admin";
 
   useEffect(() => {
     void hydrateBookings();
@@ -75,13 +80,14 @@ export function CalendarApp() {
 
   const handleSlotClick = useCallback(
     (technicianId: string, slot: Date) => {
+      if (!canMutateBookings) return;
       setPopover({
         mode: "new",
         technicianId,
         slotISO: slot.toISOString(),
       });
     },
-    [],
+    [canMutateBookings],
   );
 
   const handleBookingClick = useCallback(
@@ -94,10 +100,10 @@ export function CalendarApp() {
   );
 
   const handleNewAppointment = useCallback(() => {
-    if (!hasStaff) return;
+    if (!hasStaff || !canMutateBookings) return;
     const slot = defaultSlotForDay(date);
     setPopover({ mode: "new", slotISO: slot.toISOString() });
-  }, [date, hasStaff]);
+  }, [canMutateBookings, date, hasStaff]);
 
   const handleCreate = useCallback(
     ({
@@ -111,23 +117,34 @@ export function CalendarApp() {
       customerName: string;
       slotISO: string;
     }) => {
-      const booking: Booking = {
-        id: uuid(),
+      const service = services.find((s) => s.id === serviceId);
+      if (!service) return;
+      void addBooking({
         technicianId,
         serviceId,
         customerName,
         startISO: slotISO,
-      };
-      void addBooking(booking);
+        durationMinutes: service.durationMinutes,
+      });
     },
-    [addBooking],
+    [addBooking, services],
   );
 
   const handleUpdate = useCallback(
     (booking: Booking) => {
-      void updateBooking(booking);
+      const service = services.find((s) => s.id === booking.serviceId);
+      if (!service) return;
+      void updateBooking({
+        id: booking.id,
+        technicianId: booking.technicianId,
+        serviceId: booking.serviceId,
+        customerName: booking.customerName,
+        startISO: booking.startISO,
+        durationMinutes: service.durationMinutes,
+        notes: booking.notes,
+      });
     },
-    [updateBooking],
+    [services, updateBooking],
   );
 
   const handleDelete = useCallback(
@@ -154,7 +171,7 @@ export function CalendarApp() {
         date={date}
         onChange={setDate}
         onNewAppointment={handleNewAppointment}
-        canCreateAppointment={hasStaff}
+        canCreateAppointment={hasStaff && canMutateBookings}
       />
 
       {!hydrated ? (
@@ -173,6 +190,7 @@ export function CalendarApp() {
           bookings={todaysBookings}
           onSlotClick={handleSlotClick}
           onBookingClick={handleBookingClick}
+          canCreateFromSlots={canMutateBookings}
         />
       )}
 
@@ -184,6 +202,7 @@ export function CalendarApp() {
           onCreate={handleCreate}
           onUpdate={handleUpdate}
           onDelete={handleDelete}
+          readOnly={!canMutateBookings}
         />
       )}
 

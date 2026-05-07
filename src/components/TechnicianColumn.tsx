@@ -17,6 +17,7 @@ interface TechnicianColumnProps {
   bookings: Booking[];
   onSlotClick: (technicianId: string, slot: Date) => void;
   onBookingClick: (bookingId: string) => void;
+  canCreateFromSlots?: boolean;
   nowLineTop?: number | null;
 }
 
@@ -26,6 +27,7 @@ export function TechnicianColumn({
   bookings,
   onSlotClick,
   onBookingClick,
+  canCreateFromSlots = true,
   nowLineTop = null,
 }: TechnicianColumnProps) {
   const slots = slotsForDay(date);
@@ -56,8 +58,13 @@ export function TechnicianColumn({
               key={slot.toISOString()}
               type="button"
               onClick={() => onSlotClick(technician.id, slot)}
+              disabled={!canCreateFromSlots}
               aria-label={`Book at ${slot.toISOString()} for ${technician.firstName}`}
-              className={`absolute inset-x-0 cursor-pointer transition-colors hover:bg-zinc-900/5 dark:hover:bg-white/5 ${borderClass}`}
+              className={`absolute inset-x-0 transition-colors dark:hover:bg-white/5 ${borderClass} ${
+                canCreateFromSlots
+                  ? "cursor-pointer hover:bg-zinc-900/5"
+                  : "cursor-default"
+              }`}
               style={{
                 top: idx * SLOT_HEIGHT_PX,
                 height: SLOT_HEIGHT_PX,

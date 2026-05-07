@@ -26,7 +26,10 @@ export interface Booking {
   serviceId: string;
   customerName: string;
   startISO: string;
+  notes?: string | null;
 }
+
+export type ProfileRole = "admin" | "staff";
 
 export interface BusinessHours {
   openHour: number;
