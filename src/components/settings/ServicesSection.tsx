@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { Service } from "@/src/types";
 import { useServices } from "@/src/store/useServices";
 import { useBookings } from "@/src/store/useBookings";
+import { ConfirmDialog } from "@/src/components/ConfirmDialog";
 import { BUSINESS_HOURS } from "@/src/lib/config";
 import {
   DEFAULT_SERVICE_COLOR,
@@ -27,6 +28,7 @@ export function ServicesSection({ organizationId }: ServicesSectionProps) {
 
   const bookings = useBookings((s) => s.bookings);
   const hydrateBookings = useBookings((s) => s.hydrate);
+  const [pendingRemove, setPendingRemove] = useState<Service | null>(null);
 
   useEffect(() => {
     void hydrate();
@@ -59,15 +61,14 @@ export function ServicesSection({ organizationId }: ServicesSectionProps) {
     );
   }
 
-  function handleRemove(service: Service) {
-    const count = bookingCounts.get(service.id) ?? 0;
-    const message =
-      count > 0
-        ? `Remove "${service.name}"? ${count} existing booking${count === 1 ? "" : "s"} use this service and will stop displaying.`
-        : `Remove "${service.name}"?`;
-    if (window.confirm(message)) {
-      void removeService(service.id);
-    }
+  function handleRemoveRequest(service: Service) {
+    setPendingRemove(service);
+  }
+
+  function handleConfirmRemove() {
+    if (!pendingRemove) return;
+    void removeService(pendingRemove.id);
+    setPendingRemove(null);
   }
 
   return (
@@ -94,7 +95,7 @@ export function ServicesSection({ organizationId }: ServicesSectionProps) {
               service={service}
               bookingCount={bookingCounts.get(service.id) ?? 0}
               onChange={(s) => void updateService(s)}
-              onRemove={() => handleRemove(service)}
+              onRemove={() => handleRemoveRequest(service)}
             />
           ))}
 
@@ -114,6 +115,24 @@ export function ServicesSection({ organizationId }: ServicesSectionProps) {
           </button>
         </div>
       )}
+      <ConfirmDialog
+        open={pendingRemove !== null}
+        title={pendingRemove ? `Remove "${pendingRemove.name}"?` : "Remove service?"}
+        description={
+          pendingRemove
+            ? (() => {
+                const count = bookingCounts.get(pendingRemove.id) ?? 0;
+                return count > 0
+                  ? `${count} existing booking${count === 1 ? "" : "s"} use this service and will stop displaying.`
+                  : "This action cannot be undone.";
+              })()
+            : undefined
+        }
+        confirmLabel="Remove"
+        destructive
+        onCancel={() => setPendingRemove(null)}
+        onConfirm={handleConfirmRemove}
+      />
     </SettingsSection>
   );
 }

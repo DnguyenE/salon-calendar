@@ -1,9 +1,10 @@
 -- supabase/seed.sql
 -- Local/dev seed data. Runs automatically on `supabase db reset` and `supabase start`.
 
-insert into public.organizations (name, slug)
-values ('ClientFlow', 'clientflow')
-on conflict (slug) do nothing;
+insert into public.organizations (name, slug, email_domain)
+values ('ClientFlow', 'clientflow', 'clientflow.com')
+on conflict (slug) do update
+set email_domain = excluded.email_domain;
 
 -- Local-dev users for ClientFlow (admins + staff technicians).
 -- All seeded users share the same trivial password ('password'); these

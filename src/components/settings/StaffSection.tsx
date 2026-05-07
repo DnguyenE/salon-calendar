@@ -4,9 +4,35 @@ import { useEffect, useMemo, useState } from "react";
 import type { Technician } from "@/src/types";
 import { useStaff } from "@/src/store/useStaff";
 import { useServices } from "@/src/store/useServices";
+import { ConfirmDialog } from "@/src/components/ConfirmDialog";
 import { SettingsSection } from "./SettingsSection";
 
-export function StaffSection() {
+interface StaffSectionProps {
+  emailDomain?: string | null;
+}
+
+function slugifyNamePart(input: string): string {
+  return input
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "")
+    .replace(/^-+|-+$/g, "");
+}
+
+function buildPrefillEmail(
+  firstName: string,
+  lastName: string,
+  emailDomain?: string | null,
+): string {
+  const domain = (emailDomain ?? "").trim().toLowerCase();
+  if (!domain) return "";
+  const first = slugifyNamePart(firstName);
+  const last = slugifyNamePart(lastName);
+  if (!first || !last) return "";
+  return `${first}.${last}@${domain}`;
+}
+
+export function StaffSection({ emailDomain = null }: StaffSectionProps) {
   const technicians = useStaff((s) => s.technicians);
   const hydrated = useStaff((s) => s.hydrated);
   const error = useStaff((s) => s.error);
@@ -20,17 +46,21 @@ export function StaffSection() {
   const hydrateServices = useServices((s) => s.hydrate);
 
   const [adding, setAdding] = useState(false);
+  const [removing, setRemoving] = useState<Technician | null>(null);
 
   useEffect(() => {
     void hydrate();
     void hydrateServices();
   }, [hydrate, hydrateServices]);
 
-  function handleRemove(t: Technician) {
-    const label = [t.firstName, t.lastName].filter(Boolean).join(" ") || "this staff member";
-    if (window.confirm(`Remove ${label}?`)) {
-      void removeTechnician(t.id);
-    }
+  function handleRemoveRequest(t: Technician) {
+    setRemoving(t);
+  }
+
+  function handleConfirmRemove() {
+    if (!removing) return;
+    void removeTechnician(removing.id);
+    setRemoving(null);
   }
 
   return (
@@ -57,7 +87,7 @@ export function StaffSection() {
               technician={t}
               services={services}
               onSave={(input) => updateTechnician({ id: t.id, ...input })}
-              onRemove={() => handleRemove(t)}
+              onRemove={() => handleRemoveRequest(t)}
               onSaveServices={(next) => setTechnicianServices(t.id, next)}
             />
           ))}
@@ -70,6 +100,7 @@ export function StaffSection() {
 
           {adding && (
             <NewStaffRow
+              emailDomain={emailDomain}
               onCancel={() => setAdding(false)}
               onSubmit={async (input) => {
                 const res = await addTechnician(input);
@@ -91,6 +122,19 @@ export function StaffSection() {
           )}
         </div>
       )}
+      <ConfirmDialog
+        open={removing !== null}
+        title={
+          removing
+            ? `Remove ${[removing.firstName, removing.lastName].filter(Boolean).join(" ") || "staff member"}?`
+            : "Remove staff?"
+        }
+        description="This will remove the staff member and their account access."
+        confirmLabel="Remove"
+        destructive
+        onCancel={() => setRemoving(null)}
+        onConfirm={handleConfirmRemove}
+      />
     </SettingsSection>
   );
 }
@@ -387,6 +431,7 @@ function StaffRow({
 }
 
 interface NewStaffRowProps {
+  emailDomain?: string | null;
   onCancel: () => void;
   onSubmit: (input: {
     firstName: string;
@@ -395,10 +440,11 @@ interface NewStaffRowProps {
   }) => Promise<{ ok: boolean; error?: string }>;
 }
 
-function NewStaffRow({ onCancel, onSubmit }: NewStaffRowProps) {
+function NewStaffRow({ emailDomain, onCancel, onSubmit }: NewStaffRowProps) {
   const [draft, setDraft] = useState({ firstName: "", lastName: "", email: "" });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [emailCustomized, setEmailCustomized] = useState(false);
 
   const submit = async () => {
     if (saving) return;
@@ -425,7 +471,16 @@ function NewStaffRow({ onCancel, onSubmit }: NewStaffRowProps) {
           autoFocus
           type="text"
           value={draft.firstName}
-          onChange={(e) => setDraft((d) => ({ ...d, firstName: e.target.value }))}
+          onChange={(e) => {
+            const firstName = e.target.value;
+            setDraft((d) => ({
+              ...d,
+              firstName,
+              email: emailCustomized
+                ? d.email
+                : buildPrefillEmail(firstName, d.lastName, emailDomain),
+            }));
+          }}
           onKeyDown={onKey}
           aria-label="First name"
           placeholder="First name"
@@ -434,7 +489,16 @@ function NewStaffRow({ onCancel, onSubmit }: NewStaffRowProps) {
         <input
           type="text"
           value={draft.lastName}
-          onChange={(e) => setDraft((d) => ({ ...d, lastName: e.target.value }))}
+          onChange={(e) => {
+            const lastName = e.target.value;
+            setDraft((d) => ({
+              ...d,
+              lastName,
+              email: emailCustomized
+                ? d.email
+                : buildPrefillEmail(d.firstName, lastName, emailDomain),
+            }));
+          }}
           onKeyDown={onKey}
           aria-label="Last name"
           placeholder="Last name"
@@ -443,7 +507,10 @@ function NewStaffRow({ onCancel, onSubmit }: NewStaffRowProps) {
         <input
           type="email"
           value={draft.email}
-          onChange={(e) => setDraft((d) => ({ ...d, email: e.target.value }))}
+          onChange={(e) => {
+            setEmailCustomized(true);
+            setDraft((d) => ({ ...d, email: e.target.value }));
+          }}
           onKeyDown={onKey}
           aria-label="Email"
           placeholder="email@example.com"

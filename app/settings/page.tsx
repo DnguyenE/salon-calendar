@@ -11,6 +11,13 @@ export const metadata = {
   title: "Settings · Salon Calendar",
 };
 
+function emailDomainOf(email: string | null | undefined): string | null {
+  if (!email) return null;
+  const at = email.indexOf("@");
+  if (at < 0 || at === email.length - 1) return null;
+  return email.slice(at + 1).toLowerCase();
+}
+
 export default async function SettingsPage() {
   const supabase = createClient(await cookies());
   const {
@@ -27,6 +34,16 @@ export default async function SettingsPage() {
     .single();
 
   if (!profile) redirect("/login");
+
+  const { data: organization } = await supabase
+    .from("organizations")
+    .select("email_domain")
+    .eq("id", profile.organization_id)
+    .single();
+
+  const staffEmailDomain =
+    organization?.email_domain ??
+    emailDomainOf(profile.email ?? user.email ?? null);
 
   return (
     <div className="flex min-h-screen flex-col bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
@@ -72,7 +89,7 @@ export default async function SettingsPage() {
         <div className="w-full max-w-2xl space-y-6">
           <AppearanceSection />
           <ServicesSection organizationId={profile.organization_id} />
-          <StaffSection />
+          <StaffSection emailDomain={staffEmailDomain} />
         </div>
       </main>
     </div>
