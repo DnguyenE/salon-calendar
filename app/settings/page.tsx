@@ -101,6 +101,16 @@ export default async function SettingsPage() {
               Only admins can manage round-robin order, services, and staff.
             </div>
           )}
+          <div className="flex justify-end border-t border-zinc-200 pt-4 dark:border-zinc-800">
+            <form action={signOut}>
+              <button
+                type="submit"
+                className="inline-flex h-9 items-center rounded-md border border-zinc-200 px-3 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-900"
+              >
+                Sign out
+              </button>
+            </form>
+          </div>
         </div>
       </main>
     </div>
