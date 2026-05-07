@@ -58,12 +58,7 @@ export function StaffSection() {
               services={services}
               onSave={(input) => updateTechnician({ id: t.id, ...input })}
               onRemove={() => handleRemove(t)}
-              onToggleService={(serviceId, on) => {
-                const next = on
-                  ? Array.from(new Set([...t.serviceIds, serviceId]))
-                  : t.serviceIds.filter((id) => id !== serviceId);
-                void setTechnicianServices(t.id, next);
-              }}
+              onSaveServices={(next) => setTechnicianServices(t.id, next)}
             />
           ))}
 
@@ -109,7 +104,7 @@ interface StaffRowProps {
     email: string;
   }) => Promise<{ ok: boolean; error?: string }>;
   onRemove: () => void;
-  onToggleService: (serviceId: string, on: boolean) => void;
+  onSaveServices: (serviceIds: string[]) => Promise<{ ok: boolean; error?: string }>;
 }
 
 function StaffRow({
@@ -117,7 +112,7 @@ function StaffRow({
   services,
   onSave,
   onRemove,
-  onToggleService,
+  onSaveServices,
 }: StaffRowProps) {
   const [draft, setDraft] = useState({
     firstName: technician.firstName,
@@ -125,7 +120,12 @@ function StaffRow({
     email: technician.email ?? "",
   });
   const [saving, setSaving] = useState(false);
+  const [savingServices, setSavingServices] = useState(false);
   const [rowError, setRowError] = useState<string | null>(null);
+  const [servicesOpen, setServicesOpen] = useState(false);
+  const [draftServiceIds, setDraftServiceIds] = useState<string[]>(
+    technician.serviceIds,
+  );
 
   const dirty =
     draft.firstName !== technician.firstName ||
@@ -136,6 +136,7 @@ function StaffRow({
     () => new Set(technician.serviceIds),
     [technician.serviceIds],
   );
+  const draftOffered = useMemo(() => new Set(draftServiceIds), [draftServiceIds]);
 
   const save = async () => {
     if (!dirty || saving) return;
@@ -161,6 +162,31 @@ function StaffRow({
       e.preventDefault();
       cancel();
     }
+  };
+
+  const selectedServiceNames = services
+    .filter((s) => offered.has(s.id))
+    .map((s) => s.name);
+
+  const saveServices = async () => {
+    if (savingServices) return;
+    setSavingServices(true);
+    const res = await onSaveServices(draftServiceIds);
+    setSavingServices(false);
+    if (!res.ok) {
+      setRowError(res.error ?? "Failed to save services.");
+      return;
+    }
+    setRowError(null);
+    setServicesOpen(false);
+  };
+
+  const toggleDraftService = (serviceId: string, checked: boolean) => {
+    setDraftServiceIds((prev) =>
+      checked
+        ? Array.from(new Set([...prev, serviceId]))
+        : prev.filter((id) => id !== serviceId),
+    );
   };
 
   return (
@@ -257,39 +283,105 @@ function StaffRow({
       )}
 
       <div className="mt-2 border-t border-zinc-200 pt-2 dark:border-zinc-800">
-        <p className="mb-1.5 text-[11px] font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-          Services offered
-        </p>
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+            Services offered
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              setDraftServiceIds(technician.serviceIds);
+              setServicesOpen(true);
+            }}
+            disabled={services.length === 0}
+            className="rounded-md border border-zinc-200 px-2.5 py-1 text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+          >
+            Edit services
+          </button>
+        </div>
         {services.length === 0 ? (
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+          <p className="mt-1.5 text-xs text-zinc-500 dark:text-zinc-400">
             Add services first to assign them to staff.
           </p>
+        ) : selectedServiceNames.length === 0 ? (
+          <p className="mt-1.5 text-xs text-zinc-500 dark:text-zinc-400">
+            No services assigned.
+          </p>
         ) : (
-          <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
-            {services.map((s) => {
-              const checked = offered.has(s.id);
-              return (
-                <label
-                  key={s.id}
-                  className={`flex cursor-pointer items-center gap-2 rounded-md border px-2 py-1.5 text-xs transition-colors ${
-                    checked
-                      ? "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-50 dark:bg-zinc-50 dark:text-zinc-900"
-                      : "border-zinc-200 bg-white text-zinc-700 hover:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-zinc-500"
-                  }`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={checked}
-                    onChange={(e) => onToggleService(s.id, e.target.checked)}
-                    className="sr-only"
-                  />
-                  <span className="leading-tight">{s.name}</span>
-                </label>
-              );
-            })}
-          </div>
+          <p className="mt-1.5 text-xs text-zinc-600 dark:text-zinc-300">
+            {selectedServiceNames.join(", ")}
+          </p>
         )}
       </div>
+
+      {servicesOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => {
+            if (savingServices) return;
+            setServicesOpen(false);
+            setDraftServiceIds(technician.serviceIds);
+          }}
+        >
+          <div
+            className="w-full max-w-xl rounded-lg border border-zinc-200 bg-white p-5 shadow-xl dark:border-zinc-800 dark:bg-zinc-900"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-50">
+              Edit services for {technician.firstName}
+            </h3>
+            <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+              Select all services this technician offers.
+            </p>
+
+            <div className="mt-4 grid grid-cols-2 gap-1.5 sm:grid-cols-3">
+              {services.map((s) => {
+                const checked = draftOffered.has(s.id);
+                return (
+                  <label
+                    key={s.id}
+                    className={`flex cursor-pointer items-center gap-2 rounded-md border px-2 py-1.5 text-xs transition-colors ${
+                      checked
+                        ? "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-50 dark:bg-zinc-50 dark:text-zinc-900"
+                        : "border-zinc-200 bg-white text-zinc-700 hover:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-zinc-500"
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={(e) => toggleDraftService(s.id, e.target.checked)}
+                      className="sr-only"
+                    />
+                    <span className="leading-tight">{s.name}</span>
+                  </label>
+                );
+              })}
+            </div>
+
+            <div className="mt-4 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setServicesOpen(false);
+                  setDraftServiceIds(technician.serviceIds);
+                }}
+                disabled={savingServices}
+                className="rounded-md border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => void saveServices()}
+                disabled={savingServices}
+                className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+              >
+                Save services
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
