@@ -7,7 +7,11 @@ import { getDailyRoundRobin } from "@/app/actions/roundRobin";
 import { useBookings } from "@/src/store/useBookings";
 import { useServices } from "@/src/store/useServices";
 import { useStaff } from "@/src/store/useStaff";
-import { defaultSlotForDay } from "@/src/lib/time";
+import {
+  defaultSlotForDay,
+  rangeOverlapsBooking,
+  wouldFitInDay,
+} from "@/src/lib/time";
 import { CalendarHeader } from "./CalendarHeader";
 import { DayGrid } from "./DayGrid";
 import {
@@ -30,6 +34,12 @@ export function CalendarApp({ viewerRole, orgName }: CalendarAppProps) {
   const [date, setDate] = useState<Date>(() => startOfLocalDay(new Date()));
   const [popover, setPopover] = useState<PopoverState | null>(null);
   const [roundRobinIds, setRoundRobinIds] = useState<string[]>([]);
+  const [draggingBookingId, setDraggingBookingId] = useState<string | null>(null);
+  const [dragOverTarget, setDragOverTarget] = useState<{
+    technicianId: string;
+    slotISO: string;
+  } | null>(null);
+  const [dragError, setDragError] = useState<string | null>(null);
 
   const bookings = useBookings((s) => s.bookings);
   const bookingsHydrated = useBookings((s) => s.hydrated);
@@ -191,6 +201,88 @@ export function CalendarApp({ viewerRole, orgName }: CalendarAppProps) {
     [deleteBooking],
   );
 
+  const handleBookingDragStart = useCallback(
+    (bookingId: string) => {
+      if (!canMutateBookings) return;
+      setDragError(null);
+      setDraggingBookingId(bookingId);
+    },
+    [canMutateBookings],
+  );
+
+  const handleBookingDragEnd = useCallback(() => {
+    setDraggingBookingId(null);
+    setDragOverTarget(null);
+  }, []);
+
+  const handleSlotDragOver = useCallback(
+    (technicianId: string, slotISO: string) => {
+      if (!canMutateBookings || !draggingBookingId) return;
+      setDragOverTarget({ technicianId, slotISO });
+    },
+    [canMutateBookings, draggingBookingId],
+  );
+
+  const handleSlotDrop = useCallback(
+    (technicianId: string, slotISO: string) => {
+      if (!canMutateBookings || !draggingBookingId) return;
+
+      const dragged = bookings.find((b) => b.id === draggingBookingId);
+      const service = dragged
+        ? services.find((s) => s.id === dragged.serviceId)
+        : undefined;
+      if (!dragged || !service) {
+        setDraggingBookingId(null);
+        setDragOverTarget(null);
+        return;
+      }
+
+      if (
+        dragged.technicianId === technicianId &&
+        dragged.startISO === slotISO
+      ) {
+        setDraggingBookingId(null);
+        setDragOverTarget(null);
+        return;
+      }
+
+      const newStart = parseISO(slotISO);
+      if (!wouldFitInDay(newStart, service)) {
+        setDragError("Cannot move booking outside business hours.");
+        setDraggingBookingId(null);
+        setDragOverTarget(null);
+        return;
+      }
+
+      const overlaps = bookings.some(
+        (b) =>
+          b.id !== dragged.id &&
+          b.technicianId === technicianId &&
+          rangeOverlapsBooking(newStart, service.durationMinutes, b),
+      );
+      if (overlaps) {
+        setDragError("Cannot move booking into an occupied time slot.");
+        setDraggingBookingId(null);
+        setDragOverTarget(null);
+        return;
+      }
+
+      setDragError(null);
+      void updateBooking({
+        id: dragged.id,
+        technicianId,
+        serviceId: dragged.serviceId,
+        customerName: dragged.customerName,
+        startISO: slotISO,
+        durationMinutes: service.durationMinutes,
+        notes: dragged.notes,
+      });
+      setDraggingBookingId(null);
+      setDragOverTarget(null);
+    },
+    [bookings, canMutateBookings, draggingBookingId, services, updateBooking],
+  );
+
   const popoverDate = useMemo(() => {
     if (popover?.mode === "new") return parseISO(popover.slotISO);
     if (popover?.mode === "edit") return parseISO(popover.booking.startISO);
@@ -223,14 +315,27 @@ export function CalendarApp({ viewerRole, orgName }: CalendarAppProps) {
           </p>
         </div>
       ) : (
-        <DayGrid
-          date={date}
-          technicians={orderedTechnicians}
-          bookings={todaysBookings}
-          onSlotClick={handleSlotClick}
-          onBookingClick={handleBookingClick}
-          canCreateFromSlots={canMutateBookings}
-        />
+        <>
+          {dragError && (
+            <div className="border-b border-rose-200 bg-rose-50 px-4 py-2 text-xs text-rose-700 dark:border-rose-900 dark:bg-rose-950 dark:text-rose-300">
+              {dragError}
+            </div>
+          )}
+          <DayGrid
+            date={date}
+            technicians={orderedTechnicians}
+            bookings={todaysBookings}
+            onSlotClick={handleSlotClick}
+            onBookingClick={handleBookingClick}
+            canCreateFromSlots={canMutateBookings}
+            canDragBookings={canMutateBookings}
+            dragOverTarget={dragOverTarget}
+            onBookingDragStart={handleBookingDragStart}
+            onBookingDragEnd={handleBookingDragEnd}
+            onSlotDragOver={handleSlotDragOver}
+            onSlotDrop={handleSlotDrop}
+          />
+        </>
       )}
 
       {popover && hasStaff && (

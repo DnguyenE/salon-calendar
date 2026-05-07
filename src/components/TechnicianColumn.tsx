@@ -18,6 +18,12 @@ interface TechnicianColumnProps {
   onSlotClick: (technicianId: string, slot: Date) => void;
   onBookingClick: (bookingId: string) => void;
   canCreateFromSlots?: boolean;
+  canDragBookings?: boolean;
+  activeDropSlotISO?: string | null;
+  onSlotDragOver?: (technicianId: string, slotISO: string) => void;
+  onSlotDrop?: (technicianId: string, slotISO: string) => void;
+  onBookingDragStart?: (bookingId: string) => void;
+  onBookingDragEnd?: () => void;
   nowLineTop?: number | null;
 }
 
@@ -28,6 +34,12 @@ export function TechnicianColumn({
   onSlotClick,
   onBookingClick,
   canCreateFromSlots = true,
+  canDragBookings = false,
+  activeDropSlotISO = null,
+  onSlotDragOver,
+  onSlotDrop,
+  onBookingDragStart,
+  onBookingDragEnd,
   nowLineTop = null,
 }: TechnicianColumnProps) {
   const slots = slotsForDay(date);
@@ -58,12 +70,27 @@ export function TechnicianColumn({
               key={slot.toISOString()}
               type="button"
               onClick={() => onSlotClick(technician.id, slot)}
+              onDragOver={(e) => {
+                if (!canDragBookings) return;
+                e.preventDefault();
+                e.dataTransfer.dropEffect = "move";
+                onSlotDragOver?.(technician.id, slot.toISOString());
+              }}
+              onDrop={(e) => {
+                if (!canDragBookings) return;
+                e.preventDefault();
+                onSlotDrop?.(technician.id, slot.toISOString());
+              }}
               disabled={!canCreateFromSlots}
               aria-label={`Book at ${slot.toISOString()} for ${technician.firstName}`}
               className={`absolute inset-x-0 transition-colors dark:hover:bg-white/5 ${borderClass} ${
                 canCreateFromSlots
                   ? "cursor-pointer hover:bg-zinc-900/5"
                   : "cursor-default"
+              } ${
+                canDragBookings && activeDropSlotISO === slot.toISOString()
+                  ? "bg-zinc-900/10 dark:bg-white/10"
+                  : ""
               }`}
               style={{
                 top: idx * SLOT_HEIGHT_PX,
@@ -84,6 +111,9 @@ export function TechnicianColumn({
               booking={booking}
               topRow={topRow}
               onClick={() => onBookingClick(booking.id)}
+              canDrag={canDragBookings}
+              onDragStart={onBookingDragStart}
+              onDragEnd={onBookingDragEnd}
             />
           );
         })}

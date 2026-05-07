@@ -24,6 +24,12 @@ interface DayGridProps {
   onSlotClick: (technicianId: string, slot: Date) => void;
   onBookingClick: (bookingId: string) => void;
   canCreateFromSlots?: boolean;
+  canDragBookings?: boolean;
+  dragOverTarget?: { technicianId: string; slotISO: string } | null;
+  onBookingDragStart?: (bookingId: string) => void;
+  onBookingDragEnd?: () => void;
+  onSlotDragOver?: (technicianId: string, slotISO: string) => void;
+  onSlotDrop?: (technicianId: string, slotISO: string) => void;
 }
 
 export function DayGrid({
@@ -33,6 +39,12 @@ export function DayGrid({
   onSlotClick,
   onBookingClick,
   canCreateFromSlots = true,
+  canDragBookings = false,
+  dragOverTarget = null,
+  onBookingDragStart,
+  onBookingDragEnd,
+  onSlotDragOver,
+  onSlotDrop,
 }: DayGridProps) {
   const slots = slotsForDay(date);
   const [now, setNow] = useState(() => new Date());
@@ -98,6 +110,16 @@ export function DayGrid({
             onSlotClick={onSlotClick}
             onBookingClick={onBookingClick}
             canCreateFromSlots={canCreateFromSlots}
+            canDragBookings={canDragBookings}
+            activeDropSlotISO={
+              dragOverTarget?.technicianId === technician.id
+                ? dragOverTarget.slotISO
+                : null
+            }
+            onSlotDragOver={onSlotDragOver}
+            onSlotDrop={onSlotDrop}
+            onBookingDragStart={onBookingDragStart}
+            onBookingDragEnd={onBookingDragEnd}
             nowLineTop={showNowLine ? nowLineTop : null}
           />
         ))}
