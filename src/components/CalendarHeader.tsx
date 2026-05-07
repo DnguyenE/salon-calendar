@@ -31,28 +31,28 @@ export function CalendarHeader({
   const isToday = isSameDay(date, today);
 
   return (
-    <header className="flex items-center justify-between gap-3 border-b border-zinc-200 bg-white px-4 py-3 dark:border-zinc-800 dark:bg-zinc-950">
-      <div className="flex items-center gap-2">
-        <h1 className="text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+    <header className="flex flex-wrap items-center gap-2 border-b border-zinc-200 bg-white px-3 py-2 dark:border-zinc-800 dark:bg-zinc-950 md:gap-3 md:px-4 md:py-3">
+      <div className="min-w-0 flex-1">
+        <h1 className="truncate text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-50 md:text-lg">
           {orgName}
         </h1>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="order-3 flex w-full items-center justify-center gap-2 sm:order-none sm:w-auto">
         <button
           type="button"
           onClick={() => onChange(addDays(date, -1))}
-          className="flex h-9 w-9 items-center justify-center rounded-md border border-zinc-200 text-zinc-700 transition-colors hover:bg-zinc-100 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-900"
+          className="flex h-11 w-11 items-center justify-center rounded-md border border-zinc-200 text-zinc-700 transition-colors hover:bg-zinc-100 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-900"
           aria-label="Previous day"
         >
           <span aria-hidden>‹</span>
         </button>
 
-        <div className="flex flex-col items-center px-2 min-w-[180px]">
-          <div className="text-base font-semibold text-zinc-900 dark:text-zinc-50">
+        <div className="flex min-w-[170px] flex-col items-center px-1.5 sm:min-w-[190px]">
+          <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-50 sm:text-base">
             {format(date, "EEEE")}
           </div>
-          <div className="text-xs text-zinc-500 dark:text-zinc-400">
+          <div className="text-[11px] text-zinc-500 dark:text-zinc-400 sm:text-xs">
             {format(date, "MMMM d, yyyy")}
           </div>
         </div>
@@ -60,22 +60,23 @@ export function CalendarHeader({
         <button
           type="button"
           onClick={() => onChange(addDays(date, 1))}
-          className="flex h-9 w-9 items-center justify-center rounded-md border border-zinc-200 text-zinc-700 transition-colors hover:bg-zinc-100 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-900"
+          className="flex h-11 w-11 items-center justify-center rounded-md border border-zinc-200 text-zinc-700 transition-colors hover:bg-zinc-100 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-900"
           aria-label="Next day"
         >
           <span aria-hidden>›</span>
         </button>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="ml-auto flex items-center gap-2">
         <button
           type="button"
           onClick={onNewAppointment}
           disabled={!canCreateAppointment}
-          className="inline-flex h-9 items-center gap-1 rounded-md bg-zinc-900 px-3 text-sm font-semibold text-white transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+          className="inline-flex h-11 items-center gap-1 rounded-md bg-zinc-900 px-3 text-sm font-semibold text-white transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
         >
           <span aria-hidden>+</span>
-          New appointment
+          <span className="hidden sm:inline">New appointment</span>
+          <span className="sm:hidden">New</span>
         </button>
         <input
           type="date"
@@ -83,13 +84,13 @@ export function CalendarHeader({
           onChange={(e) => {
             if (e.target.value) onChange(fromDateInputValue(e.target.value));
           }}
-          className="h-9 rounded-md border border-zinc-200 bg-white px-2 text-sm text-zinc-800 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100"
+          className="h-11 rounded-md border border-zinc-200 bg-white px-2 text-sm text-zinc-800 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100"
         />
         <button
           type="button"
           onClick={() => onChange(today)}
           disabled={isToday}
-          className="h-9 rounded-md border border-zinc-200 px-3 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 disabled:opacity-40 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-900"
+          className="h-11 rounded-md border border-zinc-200 px-3 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 disabled:opacity-40 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-900"
         >
           Today
         </button>
@@ -97,7 +98,7 @@ export function CalendarHeader({
           href="/settings"
           aria-label="Settings"
           title="Settings"
-          className="flex h-9 w-9 items-center justify-center rounded-md border border-zinc-200 text-zinc-700 transition-colors hover:bg-zinc-100 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-900"
+          className="flex h-11 w-11 items-center justify-center rounded-md border border-zinc-200 text-zinc-700 transition-colors hover:bg-zinc-100 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-900"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"

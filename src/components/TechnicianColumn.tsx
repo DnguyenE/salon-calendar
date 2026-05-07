@@ -45,7 +45,7 @@ export function TechnicianColumn({
   const slots = slotsForDay(date);
 
   return (
-    <div className="flex min-w-[140px] flex-1 flex-col border-r border-zinc-200 last:border-r-0 dark:border-zinc-800">
+    <div className="flex min-w-[150px] flex-1 flex-col border-r border-zinc-200 last:border-r-0 md:min-w-[170px] dark:border-zinc-800">
       <div className="sticky top-0 z-10 flex h-12 items-center justify-center border-b border-zinc-200 bg-white px-2 text-sm font-semibold text-zinc-900 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50">
         {technician.firstName}
       </div>

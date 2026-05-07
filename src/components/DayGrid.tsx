@@ -66,7 +66,10 @@ export function DayGrid({
   }, [gridHeight, now]);
 
   return (
-    <div className="flex flex-1 overflow-auto bg-white dark:bg-zinc-950">
+    <div
+      className="flex flex-1 overflow-auto bg-white [webkit-overflow-scrolling:touch] dark:bg-zinc-950"
+      style={{ touchAction: "pan-x pan-y" }}
+    >
       <div
         className="sticky left-0 z-20 flex-shrink-0 border-r border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950"
         style={{ width: TIME_AXIS_WIDTH_PX }}
@@ -96,7 +99,7 @@ export function DayGrid({
         </div>
       </div>
 
-      <div className="flex min-w-0 flex-1">
+      <div className="flex min-w-0 flex-1 select-none">
         {technicians.map((technician) => (
           <TechnicianColumn
             key={technician.id}

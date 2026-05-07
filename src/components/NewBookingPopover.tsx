@@ -250,11 +250,11 @@ export function NewBookingPopover({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-2 sm:items-center sm:p-4"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-sm rounded-lg border border-zinc-200 bg-white p-5 shadow-xl dark:border-zinc-800 dark:bg-zinc-900"
+        className="max-h-[calc(100dvh-1rem)] w-full max-w-md overflow-y-auto rounded-xl border border-zinc-200 bg-white p-4 shadow-xl sm:max-h-[calc(100dvh-2rem)] sm:rounded-lg sm:p-5 dark:border-zinc-800 dark:bg-zinc-900"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4">
@@ -285,7 +285,7 @@ export function NewBookingPopover({
                 value={selectedSlotISO}
                 onChange={(e) => setSelectedSlotISO(e.target.value)}
                 disabled={readOnly}
-                className="w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:border-zinc-50 dark:focus:ring-zinc-50"
+                className="h-11 w-full rounded-md border border-zinc-200 bg-white px-3 text-sm text-zinc-900 focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:border-zinc-50 dark:focus:ring-zinc-50"
               >
                 {slotOptions.map((slot) => {
                   const iso = slot.toISOString();
@@ -312,7 +312,7 @@ export function NewBookingPopover({
                 value={techSelection}
                 onChange={(e) => setTechSelection(e.target.value)}
                 disabled={readOnly}
-                className="w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:border-zinc-50 dark:focus:ring-zinc-50"
+                className="h-11 w-full rounded-md border border-zinc-200 bg-white px-3 text-sm text-zinc-900 focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:border-zinc-50 dark:focus:ring-zinc-50"
               >
                 <option value={ANY_TECH}>Any available tech</option>
                 {technicians.map((t) => (
@@ -351,7 +351,7 @@ export function NewBookingPopover({
                       if (readOnly) return;
                       setServiceId(service.id);
                     }}
-                    className={`flex flex-col items-start rounded-md border px-2.5 py-2 text-left text-xs font-medium transition-all disabled:cursor-not-allowed disabled:opacity-40 ${
+                    className={`flex min-h-11 flex-col items-start justify-center rounded-md border px-2.5 py-2 text-left text-xs font-medium transition-all disabled:cursor-not-allowed disabled:opacity-40 ${
                       selected
                         ? "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-50 dark:bg-zinc-50 dark:text-zinc-900"
                         : "border-zinc-200 bg-white text-zinc-800 hover:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:border-zinc-500"
@@ -388,7 +388,7 @@ export function NewBookingPopover({
               onChange={(e) => setCustomerName(e.target.value)}
               readOnly={readOnly}
               placeholder="(optional)"
-              className="w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-zinc-50 dark:focus:ring-zinc-50"
+              className="h-11 w-full rounded-md border border-zinc-200 bg-white px-3 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-zinc-50 dark:focus:ring-zinc-50"
             />
           </div>
 
@@ -402,7 +402,7 @@ export function NewBookingPopover({
                     onClose();
                   }
                 }}
-                className="rounded-md border border-rose-200 px-3 py-2 text-sm font-medium text-rose-600 transition-colors hover:bg-rose-50 dark:border-rose-900 dark:text-rose-400 dark:hover:bg-rose-950"
+                className="h-11 rounded-md border border-rose-200 px-3 text-sm font-medium text-rose-600 transition-colors hover:bg-rose-50 dark:border-rose-900 dark:text-rose-400 dark:hover:bg-rose-950"
               >
                 Delete
               </button>
@@ -416,7 +416,7 @@ export function NewBookingPopover({
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-md border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                className="h-11 rounded-md border border-zinc-200 px-3 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
               >
                 {readOnly ? "Close" : "Cancel"}
               </button>
@@ -424,7 +424,7 @@ export function NewBookingPopover({
                 <button
                   type="submit"
                   disabled={!canSubmit}
-                  className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-zinc-700 disabled:opacity-40 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+                  className="h-11 rounded-md bg-zinc-900 px-4 text-sm font-semibold text-white transition-colors hover:bg-zinc-700 disabled:opacity-40 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
                 >
                   Done
                 </button>
