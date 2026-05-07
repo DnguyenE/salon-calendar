@@ -17,6 +17,7 @@ interface TechnicianColumnProps {
   bookings: Booking[];
   onSlotClick: (technicianId: string, slot: Date) => void;
   onBookingClick: (bookingId: string) => void;
+  nowLineTop?: number | null;
 }
 
 export function TechnicianColumn({
@@ -25,6 +26,7 @@ export function TechnicianColumn({
   bookings,
   onSlotClick,
   onBookingClick,
+  nowLineTop = null,
 }: TechnicianColumnProps) {
   const slots = slotsForDay(date);
 
@@ -78,6 +80,13 @@ export function TechnicianColumn({
             />
           );
         })}
+
+        {nowLineTop !== null && (
+          <div
+            className="pointer-events-none absolute inset-x-0 z-20 border-t border-rose-500"
+            style={{ top: nowLineTop }}
+          />
+        )}
       </div>
     </div>
   );

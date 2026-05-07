@@ -1,14 +1,19 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import type { Booking } from "@/src/types";
 import { useStaff } from "@/src/store/useStaff";
+import { BUSINESS_HOURS } from "@/src/lib/config";
 import {
   formatHourLabel,
   minutesSinceDayStart,
   slotsForDay,
 } from "@/src/lib/time";
-import { SLOT_HEIGHT_PX, TIME_AXIS_WIDTH_PX } from "@/src/lib/ui";
-import { parseISO } from "date-fns";
+import {
+  SLOT_HEIGHT_PX,
+  TIME_AXIS_WIDTH_PX,
+} from "@/src/lib/ui";
+import { isSameDay, parseISO } from "date-fns";
 import { TechnicianColumn } from "./TechnicianColumn";
 
 interface DayGridProps {
@@ -26,6 +31,20 @@ export function DayGrid({
 }: DayGridProps) {
   const slots = slotsForDay(date);
   const technicians = useStaff((s) => s.technicians);
+  const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  const showNowLine = isSameDay(date, now);
+  const gridHeight = slots.length * SLOT_HEIGHT_PX;
+  const nowLineTop = useMemo(() => {
+    const minutes = minutesSinceDayStart(now, BUSINESS_HOURS);
+    const rawTop = (minutes / BUSINESS_HOURS.slotMinutes) * SLOT_HEIGHT_PX;
+    return Math.min(Math.max(rawTop, 0), gridHeight);
+  }, [gridHeight, now]);
 
   return (
     <div className="flex flex-1 overflow-auto bg-white dark:bg-zinc-950">
@@ -49,6 +68,12 @@ export function DayGrid({
               </div>
             );
           })}
+          {showNowLine && (
+            <div
+              className="pointer-events-none absolute inset-x-0 z-20 border-t border-rose-500"
+              style={{ top: nowLineTop }}
+            />
+          )}
         </div>
       </div>
 
@@ -65,6 +90,7 @@ export function DayGrid({
             )}
             onSlotClick={onSlotClick}
             onBookingClick={onBookingClick}
+            nowLineTop={showNowLine ? nowLineTop : null}
           />
         ))}
       </div>
