@@ -36,9 +36,11 @@ export function CalendarApp() {
   const hydrateServices = useServices((s) => s.hydrate);
 
   const staffHydrated = useStaff((s) => s.hydrated);
+  const technicians = useStaff((s) => s.technicians);
   const hydrateStaff = useStaff((s) => s.hydrate);
 
   const hydrated = bookingsHydrated && servicesHydrated && staffHydrated;
+  const hasStaff = technicians.length > 0;
 
   useEffect(() => {
     void hydrateBookings();
@@ -92,9 +94,10 @@ export function CalendarApp() {
   );
 
   const handleNewAppointment = useCallback(() => {
+    if (!hasStaff) return;
     const slot = defaultSlotForDay(date);
     setPopover({ mode: "new", slotISO: slot.toISOString() });
-  }, [date]);
+  }, [date, hasStaff]);
 
   const handleCreate = useCallback(
     ({
@@ -151,11 +154,18 @@ export function CalendarApp() {
         date={date}
         onChange={setDate}
         onNewAppointment={handleNewAppointment}
+        canCreateAppointment={hasStaff}
       />
 
       {!hydrated ? (
         <div className="flex flex-1 items-center justify-center text-sm text-zinc-500">
           Loading…
+        </div>
+      ) : !hasStaff ? (
+        <div className="flex flex-1 items-center justify-center px-4">
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">
+            go to settings to create a Tech
+          </p>
         </div>
       ) : (
         <DayGrid
@@ -166,7 +176,7 @@ export function CalendarApp() {
         />
       )}
 
-      {popover && (
+      {popover && hasStaff && (
         <NewBookingPopover
           state={popover}
           bookingsForDay={bookingsForPopoverDay}

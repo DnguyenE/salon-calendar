@@ -7,6 +7,7 @@ interface CalendarHeaderProps {
   date: Date;
   onChange: (date: Date) => void;
   onNewAppointment: () => void;
+  canCreateAppointment?: boolean;
 }
 
 function toDateInputValue(date: Date): string {
@@ -22,6 +23,7 @@ export function CalendarHeader({
   date,
   onChange,
   onNewAppointment,
+  canCreateAppointment = true,
 }: CalendarHeaderProps) {
   const today = new Date();
   const isToday = isSameDay(date, today);
@@ -67,7 +69,8 @@ export function CalendarHeader({
         <button
           type="button"
           onClick={onNewAppointment}
-          className="inline-flex h-9 items-center gap-1 rounded-md bg-zinc-900 px-3 text-sm font-semibold text-white transition-colors hover:bg-zinc-700 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+          disabled={!canCreateAppointment}
+          className="inline-flex h-9 items-center gap-1 rounded-md bg-zinc-900 px-3 text-sm font-semibold text-white transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
         >
           <span aria-hidden>+</span>
           New appointment
