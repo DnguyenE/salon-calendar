@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { format, parseISO } from "date-fns";
 import type { Booking, Service, Technician } from "@/src/types";
 import { useServices } from "@/src/store/useServices";
-import { useStaff } from "@/src/store/useStaff";
 import {
   countAvailableTechs,
   pickAvailableTech,
@@ -31,6 +30,7 @@ type TechSelection = string | typeof ANY_TECH;
 
 interface NewBookingPopoverProps {
   state: PopoverState;
+  technicians: Technician[];
   bookingsForDay: Booking[];
   readOnly?: boolean;
   onClose: () => void;
@@ -65,6 +65,7 @@ function isServiceAvailableForTech(
 
 export function NewBookingPopover({
   state,
+  technicians,
   bookingsForDay,
   readOnly = false,
   onClose,
@@ -73,7 +74,6 @@ export function NewBookingPopover({
   onDelete,
 }: NewBookingPopoverProps) {
   const services = useServices((s) => s.services);
-  const technicians = useStaff((s) => s.technicians);
   const getTechnician = (id: string): Technician | undefined =>
     technicians.find((t) => t.id === id);
   const isEdit = state.mode === "edit";

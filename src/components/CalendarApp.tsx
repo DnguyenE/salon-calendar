@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { addDays, isSameDay, parseISO } from "date-fns";
-import type { Booking } from "@/src/types";
+import { addDays, format, isSameDay, parseISO } from "date-fns";
+import type { Booking, Technician } from "@/src/types";
+import { getDailyRoundRobin } from "@/app/actions/roundRobin";
 import { useBookings } from "@/src/store/useBookings";
 import { useServices } from "@/src/store/useServices";
 import { useStaff } from "@/src/store/useStaff";
@@ -28,6 +29,7 @@ interface CalendarAppProps {
 export function CalendarApp({ viewerRole, orgName }: CalendarAppProps) {
   const [date, setDate] = useState<Date>(() => startOfLocalDay(new Date()));
   const [popover, setPopover] = useState<PopoverState | null>(null);
+  const [roundRobinIds, setRoundRobinIds] = useState<string[]>([]);
 
   const bookings = useBookings((s) => s.bookings);
   const bookingsHydrated = useBookings((s) => s.hydrated);
@@ -45,14 +47,48 @@ export function CalendarApp({ viewerRole, orgName }: CalendarAppProps) {
   const hydrateStaff = useStaff((s) => s.hydrate);
 
   const hydrated = bookingsHydrated && servicesHydrated && staffHydrated;
-  const hasStaff = technicians.length > 0;
+  const orderedTechnicians = useMemo(() => {
+    if (technicians.length === 0) return [] as Technician[];
+    const byId = new Map(technicians.map((t) => [t.id, t]));
+    const seen = new Set<string>();
+    const ordered: Technician[] = [];
+
+    for (const id of roundRobinIds) {
+      const tech = byId.get(id);
+      if (!tech || seen.has(id)) continue;
+      ordered.push(tech);
+      seen.add(id);
+    }
+
+    for (const tech of technicians) {
+      if (seen.has(tech.id)) continue;
+      ordered.push(tech);
+    }
+
+    return ordered;
+  }, [roundRobinIds, technicians]);
+  const hasStaff = orderedTechnicians.length > 0;
   const canMutateBookings = viewerRole === "admin";
+  const dateKey = useMemo(() => format(date, "yyyy-MM-dd"), [date]);
 
   useEffect(() => {
     void hydrateBookings();
     void hydrateServices();
     void hydrateStaff();
   }, [hydrateBookings, hydrateServices, hydrateStaff]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadRoundRobin = async () => {
+      const res = await getDailyRoundRobin(dateKey);
+      if (cancelled) return;
+      setRoundRobinIds(res.ok ? res.data : []);
+    };
+    void loadRoundRobin();
+    return () => {
+      cancelled = true;
+    };
+  }, [dateKey]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -189,6 +225,7 @@ export function CalendarApp({ viewerRole, orgName }: CalendarAppProps) {
       ) : (
         <DayGrid
           date={date}
+          technicians={orderedTechnicians}
           bookings={todaysBookings}
           onSlotClick={handleSlotClick}
           onBookingClick={handleBookingClick}
@@ -199,6 +236,7 @@ export function CalendarApp({ viewerRole, orgName }: CalendarAppProps) {
       {popover && hasStaff && (
         <NewBookingPopover
           state={popover}
+          technicians={orderedTechnicians}
           bookingsForDay={bookingsForPopoverDay}
           onClose={() => setPopover(null)}
           onCreate={handleCreate}

@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { Booking } from "@/src/types";
-import { useStaff } from "@/src/store/useStaff";
+import type { Booking, Technician } from "@/src/types";
 import { BUSINESS_HOURS } from "@/src/lib/config";
 import {
   dayEnd,
@@ -20,6 +19,7 @@ import { TechnicianColumn } from "./TechnicianColumn";
 
 interface DayGridProps {
   date: Date;
+  technicians: Technician[];
   bookings: Booking[];
   onSlotClick: (technicianId: string, slot: Date) => void;
   onBookingClick: (bookingId: string) => void;
@@ -28,13 +28,13 @@ interface DayGridProps {
 
 export function DayGrid({
   date,
+  technicians,
   bookings,
   onSlotClick,
   onBookingClick,
   canCreateFromSlots = true,
 }: DayGridProps) {
   const slots = slotsForDay(date);
-  const technicians = useStaff((s) => s.technicians);
   const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {

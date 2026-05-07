@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { signOut } from "@/app/actions/auth";
 import { AppearanceSection } from "@/src/components/settings/AppearanceSection";
+import { RoundRobinSection } from "@/src/components/settings/RoundRobinSection";
 import { ServicesSection } from "@/src/components/settings/ServicesSection";
 import { StaffSection } from "@/src/components/settings/StaffSection";
 
@@ -29,11 +30,12 @@ export default async function SettingsPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("organization_id, email")
+    .select("organization_id, email, role")
     .eq("id", user.id)
     .single();
 
   if (!profile) redirect("/login");
+  const isAdmin = profile.role === "admin";
 
   const { data: organization } = await supabase
     .from("organizations")
@@ -88,8 +90,17 @@ export default async function SettingsPage() {
       <main className="flex flex-1 justify-center p-6">
         <div className="w-full max-w-2xl space-y-6">
           <AppearanceSection />
-          <ServicesSection organizationId={profile.organization_id} />
-          <StaffSection emailDomain={staffEmailDomain} />
+          {isAdmin ? (
+            <>
+              <RoundRobinSection isAdmin />
+              <ServicesSection organizationId={profile.organization_id} />
+              <StaffSection emailDomain={staffEmailDomain} />
+            </>
+          ) : (
+            <div className="rounded-md border border-zinc-200 bg-white p-4 text-sm text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300">
+              Only admins can manage round-robin order, services, and staff.
+            </div>
+          )}
         </div>
       </main>
     </div>
