@@ -5,6 +5,8 @@ import type { Booking } from "@/src/types";
 import { useStaff } from "@/src/store/useStaff";
 import { BUSINESS_HOURS } from "@/src/lib/config";
 import {
+  dayEnd,
+  dayStart,
   formatHourLabel,
   minutesSinceDayStart,
   slotsForDay,
@@ -40,7 +42,10 @@ export function DayGrid({
     return () => window.clearInterval(timer);
   }, []);
 
-  const showNowLine = isSameDay(date, now);
+  const inBusinessHours =
+    now.getTime() >= dayStart(date, BUSINESS_HOURS).getTime() &&
+    now.getTime() <= dayEnd(date, BUSINESS_HOURS).getTime();
+  const showNowLine = isSameDay(date, now) && inBusinessHours;
   const gridHeight = slots.length * SLOT_HEIGHT_PX;
   const nowLineTop = useMemo(() => {
     const minutes = minutesSinceDayStart(now, BUSINESS_HOURS);
