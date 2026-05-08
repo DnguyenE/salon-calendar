@@ -21,6 +21,7 @@ interface DayGridProps {
   date: Date;
   technicians: Technician[];
   bookings: Booking[];
+  clockedInIds?: ReadonlySet<string>;
   onSlotClick: (technicianId: string, slot: Date) => void;
   onBookingClick: (bookingId: string) => void;
   canCreateFromSlots?: boolean;
@@ -36,6 +37,7 @@ export function DayGrid({
   date,
   technicians,
   bookings,
+  clockedInIds,
   onSlotClick,
   onBookingClick,
   canCreateFromSlots = true,
@@ -110,6 +112,7 @@ export function DayGrid({
                 b.technicianId === technician.id &&
                 parseISO(b.startISO).toDateString() === date.toDateString(),
             )}
+            isClockedIn={clockedInIds ? clockedInIds.has(technician.id) : true}
             onSlotClick={onSlotClick}
             onBookingClick={onBookingClick}
             canCreateFromSlots={canCreateFromSlots}

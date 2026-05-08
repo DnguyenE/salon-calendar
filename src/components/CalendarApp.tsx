@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { addDays, format, isSameDay, parseISO } from "date-fns";
 import type { Booking, Technician } from "@/src/types";
 import { getDailyRoundRobin } from "@/app/actions/roundRobin";
@@ -57,6 +58,7 @@ export function CalendarApp({ viewerRole, orgName }: CalendarAppProps) {
   const hydrateStaff = useStaff((s) => s.hydrate);
 
   const hydrated = bookingsHydrated && servicesHydrated && staffHydrated;
+  const clockedInIds = useMemo(() => new Set(roundRobinIds), [roundRobinIds]);
   const orderedTechnicians = useMemo(() => {
     if (technicians.length === 0) return [] as Technician[];
     const byId = new Map(technicians.map((t) => [t.id, t]));
@@ -94,9 +96,24 @@ export function CalendarApp({ viewerRole, orgName }: CalendarAppProps) {
       if (cancelled) return;
       setRoundRobinIds(res.ok ? res.data : []);
     };
+
     void loadRoundRobin();
+
+    // Refetch when the user comes back to the tab/window so changes made
+    // in Settings → Round Robin (often in another tab) show up here.
+    const onFocus = () => {
+      void loadRoundRobin();
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") void loadRoundRobin();
+    };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisibility);
+
     return () => {
       cancelled = true;
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisibility);
     };
   }, [dateKey]);
 
@@ -124,6 +141,14 @@ export function CalendarApp({ viewerRole, orgName }: CalendarAppProps) {
     () => bookings.filter((b) => isSameDay(parseISO(b.startISO), date)),
     [bookings, date],
   );
+
+  const unclockedTechsWithBookings = useMemo(() => {
+    if (orderedTechnicians.length === 0) return [] as Technician[];
+    const idsWithBookings = new Set(todaysBookings.map((b) => b.technicianId));
+    return orderedTechnicians.filter(
+      (t) => idsWithBookings.has(t.id) && !clockedInIds.has(t.id),
+    );
+  }, [clockedInIds, orderedTechnicians, todaysBookings]);
 
   const handleSlotClick = useCallback(
     (technicianId: string, slot: Date) => {
@@ -321,10 +346,34 @@ export function CalendarApp({ viewerRole, orgName }: CalendarAppProps) {
               {dragError}
             </div>
           )}
+          {unclockedTechsWithBookings.length > 0 && (
+            <div
+              role="alert"
+              className="flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-amber-300 bg-amber-50 px-4 py-2 text-xs text-amber-900 dark:border-amber-700 dark:bg-amber-950/60 dark:text-amber-100"
+            >
+              <span aria-hidden>{"\u26A0"}</span>
+              <span>
+                {unclockedTechsWithBookings.length === 1
+                  ? `${unclockedTechsWithBookings[0].firstName} has bookings today but isn't clocked in.`
+                  : `${unclockedTechsWithBookings.length} technicians have bookings today but aren't clocked in: ${unclockedTechsWithBookings
+                      .map((t) => t.firstName)
+                      .join(", ")}.`}
+              </span>
+              {canMutateBookings && (
+                <Link
+                  href="/settings"
+                  className="ml-auto rounded-md border border-amber-400 px-2 py-0.5 font-medium text-amber-900 transition-colors hover:bg-amber-100 dark:border-amber-600 dark:text-amber-100 dark:hover:bg-amber-900/40"
+                >
+                  Open Round Robin
+                </Link>
+              )}
+            </div>
+          )}
           <DayGrid
             date={date}
             technicians={orderedTechnicians}
             bookings={todaysBookings}
+            clockedInIds={clockedInIds}
             onSlotClick={handleSlotClick}
             onBookingClick={handleBookingClick}
             canCreateFromSlots={canMutateBookings}
