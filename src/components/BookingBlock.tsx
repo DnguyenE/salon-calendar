@@ -37,6 +37,7 @@ export function BookingBlock({
   const heightRows = Math.round(service.durationMinutes / BUSINESS_HOURS.slotMinutes);
   const start = parseISO(booking.startISO);
   const end = bookingEnd(booking);
+  const note = booking.notes?.trim() || null;
 
   return (
     <button
@@ -59,6 +60,7 @@ export function BookingBlock({
         if (wasDraggedRef.current) return;
         onClick();
       }}
+      title={note ?? undefined}
       className={`absolute inset-x-1 overflow-hidden rounded-md px-2 py-1 text-left text-xs font-medium shadow-sm ring-1 ring-black/5 transition-all hover:shadow-md focus:outline-none focus:ring-2 focus:ring-white/70 ${
         canDrag ? "cursor-grab active:cursor-grabbing" : ""
       } ${service.colorClassName}`}
@@ -75,6 +77,11 @@ export function BookingBlock({
         {formatInTimeZone(start, timezone, "h:mm")}–
         {formatInTimeZone(end, timezone, "h:mm a")}
       </div>
+      {note && (
+        <div className="truncate italic text-[10px] opacity-75 leading-tight">
+          {note}
+        </div>
+      )}
     </button>
   );
 }
