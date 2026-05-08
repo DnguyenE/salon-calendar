@@ -27,9 +27,10 @@ function buildPrefillEmail(
   const domain = (emailDomain ?? "").trim().toLowerCase();
   if (!domain) return "";
   const first = slugifyNamePart(firstName);
+  if (!first) return "";
   const last = slugifyNamePart(lastName);
-  if (!first || !last) return "";
-  return `${first}.${last}@${domain}`;
+  const local = last ? `${first}.${last}` : first;
+  return `${local}@${domain}`;
 }
 
 export function StaffSection({ emailDomain = null }: StaffSectionProps) {
@@ -455,17 +456,21 @@ interface NewStaffRowProps {
 }
 
 function NewStaffRow({ emailDomain, onCancel, onSubmit }: NewStaffRowProps) {
-  const [draft, setDraft] = useState({ firstName: "", lastName: "", email: "" });
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [emailCustomized, setEmailCustomized] = useState(false);
+
+  const trimmedFirst = firstName.trim();
+  const email = buildPrefillEmail(firstName, lastName, emailDomain);
+  const canSubmit = trimmedFirst.length > 0 && email.length > 0 && !saving;
 
   const submit = async () => {
-    if (saving) return;
+    if (!canSubmit) return;
     setSaving(true);
     setError(null);
     try {
-      const res = await onSubmit(draft);
+      const res = await onSubmit({ firstName, lastName, email });
       if (!res.ok) setError(res.error ?? "Failed to add staff.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to add staff.");
@@ -490,59 +495,50 @@ function NewStaffRow({ emailDomain, onCancel, onSubmit }: NewStaffRowProps) {
         <input
           autoFocus
           type="text"
-          value={draft.firstName}
-          onChange={(e) => {
-            const firstName = e.target.value;
-            setDraft((d) => ({
-              ...d,
-              firstName,
-              email: emailCustomized
-                ? d.email
-                : buildPrefillEmail(firstName, d.lastName, emailDomain),
-            }));
-          }}
+          value={firstName}
+          onChange={(e) => setFirstName(e.target.value)}
           onKeyDown={onKey}
           aria-label="First name"
           placeholder="First name"
+          required
           className="min-w-0 flex-1 basis-28 rounded-md border border-zinc-200 bg-white px-2 py-1.5 text-sm text-zinc-900 focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:border-zinc-50 dark:focus:ring-zinc-50"
         />
         <input
           type="text"
-          value={draft.lastName}
-          onChange={(e) => {
-            const lastName = e.target.value;
-            setDraft((d) => ({
-              ...d,
-              lastName,
-              email: emailCustomized
-                ? d.email
-                : buildPrefillEmail(d.firstName, lastName, emailDomain),
-            }));
-          }}
+          value={lastName}
+          onChange={(e) => setLastName(e.target.value)}
           onKeyDown={onKey}
-          aria-label="Last name"
-          placeholder="Last name"
+          aria-label="Last name (optional)"
+          placeholder="Last name (optional)"
           className="min-w-0 flex-1 basis-28 rounded-md border border-zinc-200 bg-white px-2 py-1.5 text-sm text-zinc-900 focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:border-zinc-50 dark:focus:ring-zinc-50"
         />
         <input
           type="email"
-          value={draft.email}
-          onChange={(e) => {
-            setEmailCustomized(true);
-            setDraft((d) => ({ ...d, email: e.target.value }));
-          }}
-          onKeyDown={onKey}
-          aria-label="Email"
-          placeholder="email@example.com"
-          className="min-w-0 flex-1 basis-48 rounded-md border border-zinc-200 bg-white px-2 py-1.5 text-sm text-zinc-900 focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:border-zinc-50 dark:focus:ring-zinc-50"
+          value={email}
+          readOnly
+          tabIndex={-1}
+          aria-label="Email (auto-generated from name)"
+          aria-readonly="true"
+          placeholder={
+            emailDomain ? `name@${emailDomain}` : "Set an organization email domain first"
+          }
+          title="Email is generated from the staff member's name and your organization's email domain."
+          className="min-w-0 flex-1 basis-48 cursor-not-allowed rounded-md border border-zinc-200 bg-zinc-100 px-2 py-1.5 text-sm text-zinc-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400"
         />
         <div className="flex items-center gap-1">
           <button
             type="button"
             onClick={() => void submit()}
-            disabled={saving}
+            disabled={!canSubmit}
             aria-busy={saving}
-            className="h-8 rounded-md bg-zinc-900 px-2.5 text-xs font-medium text-white hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+            title={
+              !trimmedFirst
+                ? "Enter a first name"
+                : !email
+                  ? "Set an organization email domain first"
+                  : undefined
+            }
+            className="h-8 rounded-md bg-zinc-900 px-2.5 text-xs font-medium text-white hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
           >
             {saving ? "Adding…" : "Add"}
           </button>
