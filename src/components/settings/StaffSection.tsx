@@ -185,9 +185,15 @@ function StaffRow({
   const save = async () => {
     if (!dirty || saving) return;
     setSaving(true);
-    const res = await onSave(draft);
-    setSaving(false);
-    setRowError(res.ok ? null : (res.error ?? "Failed to save."));
+    setRowError(null);
+    try {
+      const res = await onSave(draft);
+      if (!res.ok) setRowError(res.error ?? "Failed to save.");
+    } catch (err) {
+      setRowError(err instanceof Error ? err.message : "Failed to save.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const cancel = () =>
@@ -215,14 +221,19 @@ function StaffRow({
   const saveServices = async () => {
     if (savingServices) return;
     setSavingServices(true);
-    const res = await onSaveServices(draftServiceIds);
-    setSavingServices(false);
-    if (!res.ok) {
-      setRowError(res.error ?? "Failed to save services.");
-      return;
+    try {
+      const res = await onSaveServices(draftServiceIds);
+      if (!res.ok) {
+        setRowError(res.error ?? "Failed to save services.");
+        return;
+      }
+      setRowError(null);
+      setServicesOpen(false);
+    } catch (err) {
+      setRowError(err instanceof Error ? err.message : "Failed to save services.");
+    } finally {
+      setSavingServices(false);
     }
-    setRowError(null);
-    setServicesOpen(false);
   };
 
   const toggleDraftService = (serviceId: string, checked: boolean) => {
@@ -280,16 +291,18 @@ function StaffRow({
               type="button"
               onClick={() => void save()}
               disabled={saving}
+              aria-busy={saving}
               title="Save (Enter)"
               className="h-8 rounded-md bg-zinc-900 px-2.5 text-xs font-medium text-white hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
             >
-              Save
+              {saving ? "Saving…" : "Save"}
             </button>
             <button
               type="button"
               onClick={cancel}
+              disabled={saving}
               title="Cancel (Esc)"
-              className="h-8 rounded-md border border-zinc-200 px-2.5 text-xs font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+              className="h-8 rounded-md border border-zinc-200 px-2.5 text-xs font-medium text-zinc-700 hover:bg-zinc-100 disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
             >
               Cancel
             </button>
@@ -418,9 +431,10 @@ function StaffRow({
                 type="button"
                 onClick={() => void saveServices()}
                 disabled={savingServices}
+                aria-busy={savingServices}
                 className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
               >
-                Save services
+                {savingServices ? "Saving…" : "Save services"}
               </button>
             </div>
           </div>
@@ -449,9 +463,15 @@ function NewStaffRow({ emailDomain, onCancel, onSubmit }: NewStaffRowProps) {
   const submit = async () => {
     if (saving) return;
     setSaving(true);
-    const res = await onSubmit(draft);
-    setSaving(false);
-    if (!res.ok) setError(res.error ?? "Failed to add staff.");
+    setError(null);
+    try {
+      const res = await onSubmit(draft);
+      if (!res.ok) setError(res.error ?? "Failed to add staff.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to add staff.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const onKey = (e: React.KeyboardEvent) => {
@@ -521,14 +541,16 @@ function NewStaffRow({ emailDomain, onCancel, onSubmit }: NewStaffRowProps) {
             type="button"
             onClick={() => void submit()}
             disabled={saving}
+            aria-busy={saving}
             className="h-8 rounded-md bg-zinc-900 px-2.5 text-xs font-medium text-white hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
           >
-            Add
+            {saving ? "Adding…" : "Add"}
           </button>
           <button
             type="button"
             onClick={onCancel}
-            className="h-8 rounded-md border border-zinc-200 px-2.5 text-xs font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+            disabled={saving}
+            className="h-8 rounded-md border border-zinc-200 px-2.5 text-xs font-medium text-zinc-700 hover:bg-zinc-100 disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
           >
             Cancel
           </button>
