@@ -38,6 +38,15 @@ export function BookingBlock({
   const start = parseISO(booking.startISO);
   const end = bookingEnd(booking);
   const note = booking.notes?.trim() || null;
+  const customerName = booking.customerName?.trim() || null;
+  // Short appointments don't have room for the default stacked layout once a
+  // note is present, so collapse the title and time onto a single row.
+  const isCompact = heightRows <= 2;
+  const timeText = `${formatInTimeZone(start, timezone, "h:mm")}–${formatInTimeZone(
+    end,
+    timezone,
+    "h:mm a",
+  )}`;
 
   return (
     <button
@@ -61,7 +70,9 @@ export function BookingBlock({
         onClick();
       }}
       title={note ?? undefined}
-      className={`absolute inset-x-1 overflow-hidden rounded-md px-2 py-1 text-left text-xs font-medium shadow-sm ring-1 ring-black/5 transition-all hover:shadow-md focus:outline-none focus:ring-2 focus:ring-white/70 ${
+      className={`absolute inset-x-1 flex flex-col overflow-hidden rounded-md px-2 ${
+        isCompact ? "py-0.5" : "py-1"
+      } text-left text-xs font-medium shadow-sm ring-1 ring-black/5 transition-all hover:shadow-md focus:outline-none focus:ring-2 focus:ring-white/70 ${
         canDrag ? "cursor-grab active:cursor-grabbing" : ""
       } ${service.colorClassName}`}
       style={{
@@ -69,14 +80,29 @@ export function BookingBlock({
         height: heightRows * SLOT_HEIGHT_PX - 4,
       }}
     >
-      <div className="font-semibold leading-tight">{service.name}</div>
-      <div className="truncate text-[11px] opacity-95 leading-tight">
-        {booking.customerName}
-      </div>
-      <div className="text-[10px] opacity-80 leading-tight">
-        {formatInTimeZone(start, timezone, "h:mm")}–
-        {formatInTimeZone(end, timezone, "h:mm a")}
-      </div>
+      {isCompact ? (
+        <div className="flex items-baseline gap-2 leading-tight">
+          <span className="truncate font-semibold">{service.name}</span>
+          <span className="ml-auto shrink-0 text-[10px] font-normal opacity-80">
+            {timeText}
+          </span>
+        </div>
+      ) : (
+        <>
+          <div className="font-semibold leading-tight">{service.name}</div>
+          {customerName && (
+            <div className="truncate text-[11px] opacity-95 leading-tight">
+              {customerName}
+            </div>
+          )}
+          <div className="text-[10px] opacity-80 leading-tight">{timeText}</div>
+        </>
+      )}
+      {isCompact && customerName && (
+        <div className="truncate text-[10px] opacity-95 leading-tight">
+          {customerName}
+        </div>
+      )}
       {note && (
         <div className="truncate italic text-[10px] opacity-75 leading-tight">
           {note}
