@@ -39,8 +39,8 @@ export function BookingBlock({
   const end = bookingEnd(booking);
   const note = booking.notes?.trim() || null;
   const customerName = booking.customerName?.trim() || null;
-  // Short appointments don't have room for the default stacked layout once a
-  // note is present, so collapse the title and time onto a single row.
+  // Short appointments need tighter padding so the note's italic descenders
+  // don't get clipped by the card's bottom edge.
   const isCompact = heightRows <= 2;
   const timeText = `${formatInTimeZone(start, timezone, "h:mm")}–${formatInTimeZone(
     end,
@@ -80,29 +80,17 @@ export function BookingBlock({
         height: heightRows * SLOT_HEIGHT_PX - 4,
       }}
     >
-      {isCompact ? (
-        <div className="flex items-baseline gap-2 leading-tight">
-          <span className="truncate font-semibold">{service.name}</span>
-          <span className="ml-auto shrink-0 text-[10px] font-normal opacity-80">
-            {timeText}
+      <div className="flex items-baseline gap-2 leading-tight">
+        <span className="min-w-0 flex-1 truncate font-semibold">
+          {service.name}
+        </span>
+        {customerName && (
+          <span className="max-w-[55%] shrink truncate text-[11px] font-normal opacity-95">
+            {customerName}
           </span>
-        </div>
-      ) : (
-        <>
-          <div className="font-semibold leading-tight">{service.name}</div>
-          {customerName && (
-            <div className="truncate text-[11px] opacity-95 leading-tight">
-              {customerName}
-            </div>
-          )}
-          <div className="text-[10px] opacity-80 leading-tight">{timeText}</div>
-        </>
-      )}
-      {isCompact && customerName && (
-        <div className="truncate text-[10px] opacity-95 leading-tight">
-          {customerName}
-        </div>
-      )}
+        )}
+      </div>
+      <div className="text-[10px] opacity-80 leading-tight">{timeText}</div>
       {note && (
         <div className="truncate italic text-[10px] opacity-75 leading-tight">
           {note}
