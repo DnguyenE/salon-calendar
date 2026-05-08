@@ -7,6 +7,7 @@ import {
   dayEnd,
   dayStart,
   formatHourLabel,
+  isSameDayInTz,
   minutesSinceDayStart,
   slotsForDay,
 } from "@/src/lib/time";
@@ -14,11 +15,12 @@ import {
   SLOT_HEIGHT_PX,
   TIME_AXIS_WIDTH_PX,
 } from "@/src/lib/ui";
-import { isSameDay, parseISO } from "date-fns";
+import { parseISO } from "date-fns";
 import { TechnicianColumn } from "./TechnicianColumn";
 
 interface DayGridProps {
   date: Date;
+  timezone: string;
   technicians: Technician[];
   bookings: Booking[];
   clockedInIds?: ReadonlySet<string>;
@@ -35,6 +37,7 @@ interface DayGridProps {
 
 export function DayGrid({
   date,
+  timezone,
   technicians,
   bookings,
   clockedInIds,
@@ -48,7 +51,7 @@ export function DayGrid({
   onSlotDragOver,
   onSlotDrop,
 }: DayGridProps) {
-  const slots = slotsForDay(date);
+  const slots = slotsForDay(date, timezone);
   const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
@@ -57,15 +60,15 @@ export function DayGrid({
   }, []);
 
   const inBusinessHours =
-    now.getTime() >= dayStart(date, BUSINESS_HOURS).getTime() &&
-    now.getTime() <= dayEnd(date, BUSINESS_HOURS).getTime();
-  const showNowLine = isSameDay(date, now) && inBusinessHours;
+    now.getTime() >= dayStart(date, timezone).getTime() &&
+    now.getTime() <= dayEnd(date, timezone).getTime();
+  const showNowLine = isSameDayInTz(date, now, timezone) && inBusinessHours;
   const gridHeight = slots.length * SLOT_HEIGHT_PX;
   const nowLineTop = useMemo(() => {
-    const minutes = minutesSinceDayStart(now, BUSINESS_HOURS);
+    const minutes = minutesSinceDayStart(now, timezone);
     const rawTop = (minutes / BUSINESS_HOURS.slotMinutes) * SLOT_HEIGHT_PX;
     return Math.min(Math.max(rawTop, 0), gridHeight);
-  }, [gridHeight, now]);
+  }, [gridHeight, now, timezone]);
 
   return (
     <div
@@ -79,7 +82,7 @@ export function DayGrid({
         <div className="sticky top-0 z-10 h-12 border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950" />
         <div className="relative" style={{ height: slots.length * SLOT_HEIGHT_PX }}>
           {slots.map((slot, idx) => {
-            const minutes = minutesSinceDayStart(slot);
+            const minutes = minutesSinceDayStart(slot, timezone);
             const isHourStart = minutes % 60 === 0;
             if (!isHourStart) return null;
             return (
@@ -88,7 +91,7 @@ export function DayGrid({
                 className="absolute inset-x-0 flex items-start justify-end pr-2 pt-0.5 text-[11px] font-medium text-zinc-500 dark:text-zinc-400"
                 style={{ top: idx * SLOT_HEIGHT_PX }}
               >
-                {formatHourLabel(slot)}
+                {formatHourLabel(slot, timezone)}
               </div>
             );
           })}
@@ -107,10 +110,11 @@ export function DayGrid({
             key={technician.id}
             technician={technician}
             date={date}
+            timezone={timezone}
             bookings={bookings.filter(
               (b) =>
                 b.technicianId === technician.id &&
-                parseISO(b.startISO).toDateString() === date.toDateString(),
+                isSameDayInTz(parseISO(b.startISO), date, timezone),
             )}
             isClockedIn={clockedInIds ? clockedInIds.has(technician.id) : true}
             onSlotClick={onSlotClick}

@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { format, parseISO } from "date-fns";
+import { parseISO } from "date-fns";
+import { formatInTimeZone } from "date-fns-tz";
 import type { Booking, Service, Technician } from "@/src/types";
 import { useServices } from "@/src/store/useServices";
 import {
@@ -31,6 +32,7 @@ type TechSelection = string | typeof ANY_TECH;
 
 interface NewBookingPopoverProps {
   state: PopoverState;
+  timezone: string;
   technicians: Technician[];
   bookingsForDay: Booking[];
   readOnly?: boolean;
@@ -54,10 +56,11 @@ function formatPrice(service: Service): string {
 function isServiceAvailableForTech(
   service: Service,
   start: Date,
+  tz: string,
   bookingsForTech: Booking[],
   ignoreBookingId: string | undefined,
 ): boolean {
-  if (!wouldFitInDay(start, service)) return false;
+  if (!wouldFitInDay(start, service, tz)) return false;
   return !bookingsForTech.some(
     (b) =>
       b.id !== ignoreBookingId &&
@@ -67,6 +70,7 @@ function isServiceAvailableForTech(
 
 export function NewBookingPopover({
   state,
+  timezone,
   technicians,
   bookingsForDay,
   readOnly = false,
@@ -106,7 +110,10 @@ export function NewBookingPopover({
 
   const ignoreBookingId = state.mode === "edit" ? state.booking.id : undefined;
 
-  const slotOptions = useMemo(() => slotsForDay(start), [start]);
+  const slotOptions = useMemo(
+    () => slotsForDay(start, timezone),
+    [start, timezone],
+  );
 
   const bookingsBySpecificTech = useMemo(() => {
     if (techSelection === ANY_TECH) return [] as Booking[];
@@ -128,6 +135,7 @@ export function NewBookingPopover({
               s.durationMinutes,
               bookingsForDay,
               techsOffering,
+              timezone,
               ignoreBookingId,
             ) !== null;
         } else {
@@ -138,6 +146,7 @@ export function NewBookingPopover({
             isServiceAvailableForTech(
               s,
               start,
+              timezone,
               bookingsBySpecificTech,
               ignoreBookingId,
             );
@@ -152,6 +161,7 @@ export function NewBookingPopover({
       bookingsForDay,
       bookingsBySpecificTech,
       ignoreBookingId,
+      timezone,
     ],
   );
 
@@ -184,6 +194,7 @@ export function NewBookingPopover({
       selectedService.durationMinutes,
       bookingsForDay,
       techsOfferingSelected,
+      timezone,
       ignoreBookingId,
     );
   }, [
@@ -192,6 +203,7 @@ export function NewBookingPopover({
     bookingsForDay,
     techsOfferingSelected,
     ignoreBookingId,
+    timezone,
   ]);
 
   useEffect(() => {
@@ -223,6 +235,7 @@ export function NewBookingPopover({
           selectedService.durationMinutes,
           bookingsForDay,
           techsOfferingSelected,
+          timezone,
           ignoreBookingId,
         );
         if (!tech) return;
@@ -273,8 +286,8 @@ export function NewBookingPopover({
                 : "New appointment"}
           </h2>
           <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
-            {headerTechLabel} · {format(start, "EEE MMM d")} ·{" "}
-            {format(start, "h:mm a")}
+            {headerTechLabel} · {formatInTimeZone(start, timezone, "EEE MMM d")}{" "}
+            · {formatInTimeZone(start, timezone, "h:mm a")}
           </p>
         </div>
 
@@ -298,7 +311,7 @@ export function NewBookingPopover({
                   const iso = slot.toISOString();
                   return (
                     <option key={iso} value={iso}>
-                      {format(slot, "h:mm a")}
+                      {formatInTimeZone(slot, timezone, "h:mm a")}
                     </option>
                   );
                 })}

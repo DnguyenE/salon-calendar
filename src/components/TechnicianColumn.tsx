@@ -14,6 +14,7 @@ import { BookingBlock } from "./BookingBlock";
 interface TechnicianColumnProps {
   technician: Technician;
   date: Date;
+  timezone: string;
   bookings: Booking[];
   isClockedIn?: boolean;
   onSlotClick: (technicianId: string, slot: Date) => void;
@@ -31,6 +32,7 @@ interface TechnicianColumnProps {
 export function TechnicianColumn({
   technician,
   date,
+  timezone,
   bookings,
   isClockedIn = true,
   onSlotClick,
@@ -44,7 +46,7 @@ export function TechnicianColumn({
   onBookingDragEnd,
   nowLineTop = null,
 }: TechnicianColumnProps) {
-  const slots = slotsForDay(date);
+  const slots = slotsForDay(date, timezone);
   const hasBookings = bookings.length > 0;
   const warn = !isClockedIn && hasBookings;
 
@@ -94,7 +96,7 @@ export function TechnicianColumn({
         style={{ height: slots.length * SLOT_HEIGHT_PX }}
       >
         {slots.map((slot, idx) => {
-          const isHourStart = minutesSinceDayStart(slot) % 60 === 0;
+          const isHourStart = minutesSinceDayStart(slot, timezone) % 60 === 0;
           let borderClass = "";
           if (idx === 0) {
             borderClass = "";
@@ -141,13 +143,14 @@ export function TechnicianColumn({
 
         {bookings.map((booking) => {
           const topRow = minutesToRows(
-            minutesSinceDayStart(parseISO(booking.startISO)),
+            minutesSinceDayStart(parseISO(booking.startISO), timezone),
             BUSINESS_HOURS,
           );
           return (
             <BookingBlock
               key={booking.id}
               booking={booking}
+              timezone={timezone}
               topRow={topRow}
               onClick={() => onBookingClick(booking.id)}
               canDrag={canDragBookings}

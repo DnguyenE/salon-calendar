@@ -1,34 +1,39 @@
 "use client";
 
 import Link from "next/link";
-import { addDays, format, isSameDay } from "date-fns";
+import { addDays } from "date-fns";
+import { formatInTimeZone, fromZonedTime } from "date-fns-tz";
+import { isSameDayInTz } from "@/src/lib/time";
 
 interface CalendarHeaderProps {
   orgName: string;
   date: Date;
+  timezone: string;
   onChange: (date: Date) => void;
   onNewAppointment: () => void;
   canCreateAppointment?: boolean;
 }
 
-function toDateInputValue(date: Date): string {
-  return format(date, "yyyy-MM-dd");
+function toDateInputValue(date: Date, tz: string): string {
+  return formatInTimeZone(date, tz, "yyyy-MM-dd");
 }
 
-function fromDateInputValue(value: string): Date {
-  const [y, m, d] = value.split("-").map(Number);
-  return new Date(y, (m ?? 1) - 1, d ?? 1);
+// Anchors at noon to avoid landing on a DST gap when constructing a Date from
+// the input value. The hour is irrelevant; we only ever read the calendar day.
+function fromDateInputValue(value: string, tz: string): Date {
+  return fromZonedTime(`${value} 12:00:00`, tz);
 }
 
 export function CalendarHeader({
   orgName,
   date,
+  timezone,
   onChange,
   onNewAppointment,
   canCreateAppointment = true,
 }: CalendarHeaderProps) {
   const today = new Date();
-  const isToday = isSameDay(date, today);
+  const isToday = isSameDayInTz(date, today, timezone);
 
   return (
     <header className="flex flex-wrap items-center gap-2 border-b border-zinc-200 bg-white px-3 py-2 dark:border-zinc-800 dark:bg-zinc-950 md:gap-3 md:px-4 md:py-3">
@@ -50,10 +55,10 @@ export function CalendarHeader({
 
         <div className="flex min-w-[170px] flex-col items-center px-1.5 sm:min-w-[190px]">
           <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-50 sm:text-base">
-            {format(date, "EEEE")}
+            {formatInTimeZone(date, timezone, "EEEE")}
           </div>
           <div className="text-[11px] text-zinc-500 dark:text-zinc-400 sm:text-xs">
-            {format(date, "MMMM d, yyyy")}
+            {formatInTimeZone(date, timezone, "MMMM d, yyyy")}
           </div>
         </div>
 
@@ -80,9 +85,10 @@ export function CalendarHeader({
         </button>
         <input
           type="date"
-          value={toDateInputValue(date)}
+          value={toDateInputValue(date, timezone)}
           onChange={(e) => {
-            if (e.target.value) onChange(fromDateInputValue(e.target.value));
+            if (e.target.value)
+              onChange(fromDateInputValue(e.target.value, timezone));
           }}
           className="h-11 rounded-md border border-zinc-200 bg-white px-2 text-sm text-zinc-800 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100"
         />

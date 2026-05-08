@@ -1,30 +1,39 @@
-import {
-  addMinutes,
-  differenceInMinutes,
-  format,
-  isSameDay,
-  parseISO,
-  setHours,
-  setMilliseconds,
-  setMinutes,
-  setSeconds,
-} from "date-fns";
+import { addMinutes, differenceInMinutes, parseISO } from "date-fns";
+import { formatInTimeZone, fromZonedTime } from "date-fns-tz";
 import type { Booking, BusinessHours, Service, Technician } from "@/src/types";
 import { BUSINESS_HOURS } from "@/src/lib/config";
 import { getServiceById } from "@/src/store/useServices";
 
-export function dayStart(date: Date, hours: BusinessHours = BUSINESS_HOURS): Date {
-  return setMilliseconds(
-    setSeconds(setMinutes(setHours(date, hours.openHour), 0), 0),
-    0,
-  );
+// All "calendar day" semantics in this module are anchored to a caller-supplied
+// IANA timezone (e.g. "America/New_York"), not the viewer's browser. Bookings'
+// `start_at` is stored in UTC, but a salon runs in one physical timezone and
+// the calendar grid must reflect that timezone consistently for everyone.
+
+function pad2(n: number): string {
+  return String(n).padStart(2, "0");
 }
 
-export function dayEnd(date: Date, hours: BusinessHours = BUSINESS_HOURS): Date {
-  return setMilliseconds(
-    setSeconds(setMinutes(setHours(date, hours.closeHour), 0), 0),
-    0,
-  );
+// Return a UTC Date that points at `hour:00:00` on the calendar day that
+// `date` falls on, evaluated in `tz`.
+function dayAnchor(date: Date, tz: string, hour: number): Date {
+  const ymd = formatInTimeZone(date, tz, "yyyy-MM-dd");
+  return fromZonedTime(`${ymd} ${pad2(hour)}:00:00`, tz);
+}
+
+export function dayStart(
+  date: Date,
+  tz: string,
+  hours: BusinessHours = BUSINESS_HOURS,
+): Date {
+  return dayAnchor(date, tz, hours.openHour);
+}
+
+export function dayEnd(
+  date: Date,
+  tz: string,
+  hours: BusinessHours = BUSINESS_HOURS,
+): Date {
+  return dayAnchor(date, tz, hours.closeHour);
 }
 
 export function totalSlots(hours: BusinessHours = BUSINESS_HOURS): number {
@@ -34,9 +43,10 @@ export function totalSlots(hours: BusinessHours = BUSINESS_HOURS): number {
 
 export function slotsForDay(
   date: Date,
+  tz: string,
   hours: BusinessHours = BUSINESS_HOURS,
 ): Date[] {
-  const start = dayStart(date, hours);
+  const start = dayStart(date, tz, hours);
   const count = totalSlots(hours);
   const out: Date[] = [];
   for (let i = 0; i < count; i++) {
@@ -46,18 +56,19 @@ export function slotsForDay(
 }
 
 // Picks a sensible default slot for opening a "new appointment" form on the
-// given day. If `date` is today and the current time is within business hours,
-// return the next slot at or after now (rounded up to the next slotMinutes
-// boundary). Otherwise return the first slot of the day.
+// given day. If `date` is today (in `tz`) and the current time is within
+// business hours, return the next slot at or after now (rounded up to the
+// next slotMinutes boundary). Otherwise return the first slot of the day.
 export function defaultSlotForDay(
   date: Date,
+  tz: string,
   now: Date = new Date(),
   hours: BusinessHours = BUSINESS_HOURS,
 ): Date {
-  const slots = slotsForDay(date, hours);
+  const slots = slotsForDay(date, tz, hours);
   const first = slots[0];
   if (!first) return date;
-  if (!isSameDay(date, now)) return first;
+  if (!isSameDayInTz(date, now, tz)) return first;
   const nowMs = now.getTime();
   const next = slots.find((s) => s.getTime() >= nowMs);
   return next ?? first;
@@ -101,29 +112,46 @@ export function rangeOverlapsBooking(
 export function wouldFitInDay(
   start: Date,
   service: Service,
+  tz: string,
   hours: BusinessHours = BUSINESS_HOURS,
 ): boolean {
   const end = addMinutes(start, service.durationMinutes);
-  return end.getTime() <= dayEnd(start, hours).getTime();
+  return end.getTime() <= dayEnd(start, tz, hours).getTime();
 }
 
-export function isBookingOnDay(booking: Booking, date: Date): boolean {
-  return isSameDay(parseISO(booking.startISO), date);
+export function isSameDayInTz(a: Date, b: Date, tz: string): boolean {
+  return (
+    formatInTimeZone(a, tz, "yyyy-MM-dd") ===
+    formatInTimeZone(b, tz, "yyyy-MM-dd")
+  );
 }
 
-export function formatSlotLabel(slot: Date): string {
-  return format(slot, "h:mm a");
+export function isBookingOnDay(
+  booking: Booking,
+  date: Date,
+  tz: string,
+): boolean {
+  return isSameDayInTz(parseISO(booking.startISO), date, tz);
 }
 
-export function formatHourLabel(slot: Date): string {
-  return format(slot, "h a");
+export function dayKey(date: Date, tz: string): string {
+  return formatInTimeZone(date, tz, "yyyy-MM-dd");
+}
+
+export function formatSlotLabel(slot: Date, tz: string): string {
+  return formatInTimeZone(slot, tz, "h:mm a");
+}
+
+export function formatHourLabel(slot: Date, tz: string): string {
+  return formatInTimeZone(slot, tz, "h a");
 }
 
 export function minutesSinceDayStart(
   date: Date,
+  tz: string,
   hours: BusinessHours = BUSINESS_HOURS,
 ): number {
-  return differenceInMinutes(date, dayStart(date, hours));
+  return differenceInMinutes(date, dayStart(date, tz, hours));
 }
 
 function isTechFreeForRange(
@@ -150,11 +178,12 @@ export function pickAvailableTech(
   durationMinutes: number,
   bookingsForDay: Booking[],
   technicians: Technician[],
+  tz: string,
   ignoreBookingId?: string,
   hours: BusinessHours = BUSINESS_HOURS,
 ): Technician | null {
   const end = addMinutes(start, durationMinutes);
-  if (end.getTime() > dayEnd(start, hours).getTime()) return null;
+  if (end.getTime() > dayEnd(start, tz, hours).getTime()) return null;
 
   const free = technicians.filter((tech) =>
     isTechFreeForRange(
@@ -192,11 +221,12 @@ export function countAvailableTechs(
   durationMinutes: number,
   bookingsForDay: Booking[],
   technicians: Technician[],
+  tz: string,
   ignoreBookingId?: string,
   hours: BusinessHours = BUSINESS_HOURS,
 ): number {
   const end = addMinutes(start, durationMinutes);
-  if (end.getTime() > dayEnd(start, hours).getTime()) return 0;
+  if (end.getTime() > dayEnd(start, tz, hours).getTime()) return 0;
   let count = 0;
   for (const tech of technicians) {
     if (
@@ -219,7 +249,9 @@ export function servicePoints(serviceName: string): number {
   return normalized.includes("mani") && normalized.includes("pedi") ? 2 : 1;
 }
 
-export function dailyPointsByTechnician(bookingsForDay: Booking[]): Map<string, number> {
+export function dailyPointsByTechnician(
+  bookingsForDay: Booking[],
+): Map<string, number> {
   const points = new Map<string, number>();
   for (const booking of bookingsForDay) {
     const service = getServiceById(booking.serviceId);
@@ -237,11 +269,12 @@ export function pickAvailableTechByPoints(
   durationMinutes: number,
   bookingsForDay: Booking[],
   technicians: Technician[],
+  tz: string,
   ignoreBookingId?: string,
   hours: BusinessHours = BUSINESS_HOURS,
 ): Technician | null {
   const end = addMinutes(start, durationMinutes);
-  if (end.getTime() > dayEnd(start, hours).getTime()) return null;
+  if (end.getTime() > dayEnd(start, tz, hours).getTime()) return null;
 
   const candidates = technicians.filter((tech) =>
     isTechFreeForRange(

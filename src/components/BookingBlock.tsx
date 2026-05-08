@@ -1,7 +1,8 @@
 "use client";
 
 import { useRef } from "react";
-import { format, parseISO } from "date-fns";
+import { parseISO } from "date-fns";
+import { formatInTimeZone } from "date-fns-tz";
 import type { Booking } from "@/src/types";
 import { useServices } from "@/src/store/useServices";
 import { bookingEnd } from "@/src/lib/time";
@@ -10,6 +11,7 @@ import { BUSINESS_HOURS } from "@/src/lib/config";
 
 interface BookingBlockProps {
   booking: Booking;
+  timezone: string;
   topRow: number;
   onClick: () => void;
   canDrag?: boolean;
@@ -19,6 +21,7 @@ interface BookingBlockProps {
 
 export function BookingBlock({
   booking,
+  timezone,
   topRow,
   onClick,
   canDrag = false,
@@ -69,7 +72,8 @@ export function BookingBlock({
         {booking.customerName}
       </div>
       <div className="text-[10px] opacity-80 leading-tight">
-        {format(start, "h:mm")}–{format(end, "h:mm a")}
+        {formatInTimeZone(start, timezone, "h:mm")}–
+        {formatInTimeZone(end, timezone, "h:mm a")}
       </div>
     </button>
   );

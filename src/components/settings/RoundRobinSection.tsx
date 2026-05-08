@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { format } from "date-fns";
+import { formatInTimeZone } from "date-fns-tz";
 import { useStaff } from "@/src/store/useStaff";
 import {
   getDailyRoundRobin,
@@ -11,18 +11,21 @@ import { SettingsSection } from "./SettingsSection";
 
 interface RoundRobinSectionProps {
   isAdmin: boolean;
+  timezone: string;
 }
 
-function dateKey(d: Date): string {
-  return format(d, "yyyy-MM-dd");
+function dateKey(d: Date, tz: string): string {
+  return formatInTimeZone(d, tz, "yyyy-MM-dd");
 }
 
-export function RoundRobinSection({ isAdmin }: RoundRobinSectionProps) {
+export function RoundRobinSection({ isAdmin, timezone }: RoundRobinSectionProps) {
   const technicians = useStaff((s) => s.technicians);
   const hydrateStaff = useStaff((s) => s.hydrate);
   const staffHydrated = useStaff((s) => s.hydrated);
 
-  const [serviceDate, setServiceDate] = useState(() => dateKey(new Date()));
+  const [serviceDate, setServiceDate] = useState(() =>
+    dateKey(new Date(), timezone),
+  );
   const [rosterIds, setRosterIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);

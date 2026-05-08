@@ -39,9 +39,10 @@ export default async function SettingsPage() {
 
   const { data: organization } = await supabase
     .from("organizations")
-    .select("email_domain")
+    .select("email_domain, timezone")
     .eq("id", profile.organization_id)
     .single();
+  const timezone = organization?.timezone ?? "UTC";
 
   const staffEmailDomain =
     organization?.email_domain ??
@@ -92,7 +93,7 @@ export default async function SettingsPage() {
           <AppearanceSection />
           {isAdmin ? (
             <>
-              <RoundRobinSection isAdmin />
+              <RoundRobinSection isAdmin timezone={timezone} />
               <ServicesSection organizationId={profile.organization_id} />
               <StaffSection emailDomain={staffEmailDomain} />
             </>

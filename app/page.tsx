@@ -23,10 +23,17 @@ export default async function Home() {
   const viewerRole: ProfileRole = profile.role === "admin" ? "admin" : "staff";
   const { data: organization } = await supabase
     .from("organizations")
-    .select("name")
+    .select("name, timezone")
     .eq("id", profile.organization_id)
     .single();
   const orgName = organization?.name ?? "Salon Calendar";
+  const timezone = organization?.timezone ?? "UTC";
 
-  return <CalendarApp viewerRole={viewerRole} orgName={orgName} />;
+  return (
+    <CalendarApp
+      viewerRole={viewerRole}
+      orgName={orgName}
+      timezone={timezone}
+    />
+  );
 }

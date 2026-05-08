@@ -1,10 +1,11 @@
 import { create } from "zustand";
-import { isSameDay, parseISO } from "date-fns";
+import { parseISO } from "date-fns";
 import type { Booking } from "@/src/types";
 import {
   bookingsService,
   type BookingMutationInput,
 } from "@/src/lib/bookingsService";
+import { isSameDayInTz } from "@/src/lib/time";
 
 interface BookingsState {
   bookings: Booking[];
@@ -13,8 +14,12 @@ interface BookingsState {
   addBooking: (booking: BookingMutationInput) => Promise<void>;
   updateBooking: (booking: BookingMutationInput & { id: string }) => Promise<void>;
   deleteBooking: (id: string) => Promise<void>;
-  bookingsForDay: (date: Date) => Booking[];
-  bookingsForTechnicianOnDay: (technicianId: string, date: Date) => Booking[];
+  bookingsForDay: (date: Date, timezone: string) => Booking[];
+  bookingsForTechnicianOnDay: (
+    technicianId: string,
+    date: Date,
+    timezone: string,
+  ) => Booking[];
 }
 
 export const useBookings = create<BookingsState>((set, get) => ({
@@ -44,15 +49,17 @@ export const useBookings = create<BookingsState>((set, get) => ({
     set((state) => ({ bookings: state.bookings.filter((b) => b.id !== id) }));
   },
 
-  bookingsForDay(date) {
-    return get().bookings.filter((b) => isSameDay(parseISO(b.startISO), date));
+  bookingsForDay(date, timezone) {
+    return get().bookings.filter((b) =>
+      isSameDayInTz(parseISO(b.startISO), date, timezone),
+    );
   },
 
-  bookingsForTechnicianOnDay(technicianId, date) {
+  bookingsForTechnicianOnDay(technicianId, date, timezone) {
     return get().bookings.filter(
       (b) =>
         b.technicianId === technicianId &&
-        isSameDay(parseISO(b.startISO), date),
+        isSameDayInTz(parseISO(b.startISO), date, timezone),
     );
   },
 }));

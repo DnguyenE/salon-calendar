@@ -2,14 +2,16 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { addDays, format, isSameDay, parseISO } from "date-fns";
+import { addDays, parseISO } from "date-fns";
 import type { Booking, Technician } from "@/src/types";
 import { getDailyRoundRobin } from "@/app/actions/roundRobin";
 import { useBookings } from "@/src/store/useBookings";
 import { useServices } from "@/src/store/useServices";
 import { useStaff } from "@/src/store/useStaff";
 import {
+  dayKey,
   defaultSlotForDay,
+  isBookingOnDay,
   rangeOverlapsBooking,
   wouldFitInDay,
 } from "@/src/lib/time";
@@ -20,19 +22,21 @@ import {
   type PopoverState,
 } from "./NewBookingPopover";
 
-function startOfLocalDay(d: Date): Date {
-  const copy = new Date(d);
-  copy.setHours(0, 0, 0, 0);
-  return copy;
-}
-
 interface CalendarAppProps {
   viewerRole: "admin" | "staff";
   orgName: string;
+  timezone: string;
 }
 
-export function CalendarApp({ viewerRole, orgName }: CalendarAppProps) {
-  const [date, setDate] = useState<Date>(() => startOfLocalDay(new Date()));
+export function CalendarApp({
+  viewerRole,
+  orgName,
+  timezone,
+}: CalendarAppProps) {
+  // `date` is treated as "any moment that lies on the desired calendar day in
+  // the org's timezone". We never read its hour/minute directly; we always
+  // re-derive the day key via `dayKey(date, timezone)`.
+  const [date, setDate] = useState<Date>(() => new Date());
   const [popover, setPopover] = useState<PopoverState | null>(null);
   const [roundRobinIds, setRoundRobinIds] = useState<string[]>([]);
   const [draggingBookingId, setDraggingBookingId] = useState<string | null>(null);
@@ -81,7 +85,7 @@ export function CalendarApp({ viewerRole, orgName }: CalendarAppProps) {
   }, [roundRobinIds, technicians]);
   const hasStaff = orderedTechnicians.length > 0;
   const canMutateBookings = viewerRole === "admin";
-  const dateKey = useMemo(() => format(date, "yyyy-MM-dd"), [date]);
+  const dateKey = useMemo(() => dayKey(date, timezone), [date, timezone]);
 
   useEffect(() => {
     void hydrateBookings();
@@ -131,15 +135,15 @@ export function CalendarApp({ viewerRole, orgName }: CalendarAppProps) {
       if (popover) return;
       if (e.key === "ArrowLeft") setDate((d) => addDays(d, -1));
       else if (e.key === "ArrowRight") setDate((d) => addDays(d, 1));
-      else if (e.key.toLowerCase() === "t") setDate(startOfLocalDay(new Date()));
+      else if (e.key.toLowerCase() === "t") setDate(new Date());
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [popover]);
 
   const todaysBookings = useMemo(
-    () => bookings.filter((b) => isSameDay(parseISO(b.startISO), date)),
-    [bookings, date],
+    () => bookings.filter((b) => isBookingOnDay(b, date, timezone)),
+    [bookings, date, timezone],
   );
 
   const unclockedTechsWithBookings = useMemo(() => {
@@ -173,9 +177,9 @@ export function CalendarApp({ viewerRole, orgName }: CalendarAppProps) {
 
   const handleNewAppointment = useCallback(() => {
     if (!hasStaff || !canMutateBookings) return;
-    const slot = defaultSlotForDay(date);
+    const slot = defaultSlotForDay(date, timezone);
     setPopover({ mode: "new", slotISO: slot.toISOString() });
-  }, [canMutateBookings, date, hasStaff]);
+  }, [canMutateBookings, date, hasStaff, timezone]);
 
   const handleCreate = useCallback(
     ({
@@ -275,7 +279,7 @@ export function CalendarApp({ viewerRole, orgName }: CalendarAppProps) {
       }
 
       const newStart = parseISO(slotISO);
-      if (!wouldFitInDay(newStart, service)) {
+      if (!wouldFitInDay(newStart, service, timezone)) {
         setDragError("Cannot move booking outside business hours.");
         setDraggingBookingId(null);
         setDragOverTarget(null);
@@ -308,7 +312,14 @@ export function CalendarApp({ viewerRole, orgName }: CalendarAppProps) {
       setDraggingBookingId(null);
       setDragOverTarget(null);
     },
-    [bookings, canMutateBookings, draggingBookingId, services, updateBooking],
+    [
+      bookings,
+      canMutateBookings,
+      draggingBookingId,
+      services,
+      timezone,
+      updateBooking,
+    ],
   );
 
   const popoverDate = useMemo(() => {
@@ -318,8 +329,8 @@ export function CalendarApp({ viewerRole, orgName }: CalendarAppProps) {
   }, [popover, date]);
 
   const bookingsForPopoverDay = useMemo(
-    () => bookings.filter((b) => isSameDay(parseISO(b.startISO), popoverDate)),
-    [bookings, popoverDate],
+    () => bookings.filter((b) => isBookingOnDay(b, popoverDate, timezone)),
+    [bookings, popoverDate, timezone],
   );
 
   return (
@@ -327,6 +338,7 @@ export function CalendarApp({ viewerRole, orgName }: CalendarAppProps) {
       <CalendarHeader
         orgName={orgName}
         date={date}
+        timezone={timezone}
         onChange={setDate}
         onNewAppointment={handleNewAppointment}
         canCreateAppointment={hasStaff && canMutateBookings}
@@ -374,6 +386,7 @@ export function CalendarApp({ viewerRole, orgName }: CalendarAppProps) {
           )}
           <DayGrid
             date={date}
+            timezone={timezone}
             technicians={orderedTechnicians}
             bookings={todaysBookings}
             clockedInIds={clockedInIds}
@@ -393,6 +406,7 @@ export function CalendarApp({ viewerRole, orgName }: CalendarAppProps) {
       {popover && hasStaff && (
         <NewBookingPopover
           state={popover}
+          timezone={timezone}
           technicians={orderedTechnicians}
           bookingsForDay={bookingsForPopoverDay}
           onClose={() => setPopover(null)}
