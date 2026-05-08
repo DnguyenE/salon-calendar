@@ -183,11 +183,13 @@ export function CalendarApp({ viewerRole, orgName }: CalendarAppProps) {
       serviceId,
       customerName,
       slotISO,
+      notes,
     }: {
       technicianId: string;
       serviceId: string;
       customerName: string;
       slotISO: string;
+      notes?: string | null;
     }) => {
       const service = services.find((s) => s.id === serviceId);
       if (!service) return;
@@ -197,6 +199,7 @@ export function CalendarApp({ viewerRole, orgName }: CalendarAppProps) {
         customerName,
         startISO: slotISO,
         durationMinutes: service.durationMinutes,
+        notes: notes ?? null,
       });
     },
     [addBooking, services],

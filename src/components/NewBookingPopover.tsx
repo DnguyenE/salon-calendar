@@ -40,6 +40,7 @@ interface NewBookingPopoverProps {
     serviceId: string;
     customerName: string;
     slotISO: string;
+    notes?: string | null;
   }) => void;
   onUpdate: (booking: Booking) => void;
   onDelete: (bookingId: string) => void;
@@ -90,12 +91,15 @@ export function NewBookingPopover({
   const initialServiceId =
     state.mode === "edit" ? state.booking.serviceId : services[0]?.id ?? "";
   const initialName = state.mode === "edit" ? state.booking.customerName : "";
+  const initialNotes =
+    state.mode === "edit" ? (state.booking.notes ?? "") : "";
 
   const [selectedSlotISO, setSelectedSlotISO] = useState(initialSlotISO);
   const [techSelection, setTechSelection] =
     useState<TechSelection>(initialTechSelection);
   const [serviceId, setServiceId] = useState(initialServiceId);
   const [customerName, setCustomerName] = useState(initialName);
+  const [notes, setNotes] = useState(initialNotes);
   const nameInputRef = useRef<HTMLInputElement>(null);
 
   const start = useMemo(() => parseISO(selectedSlotISO), [selectedSlotISO]);
@@ -210,6 +214,7 @@ export function NewBookingPopover({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (readOnly || !canSubmit || !selectedService) return;
+    const trimmedNotes = notes.trim() || null;
     if (state.mode === "new") {
       let resolvedTechId: string;
       if (techSelection === ANY_TECH) {
@@ -230,12 +235,14 @@ export function NewBookingPopover({
         serviceId: effectiveServiceId,
         customerName: customerName.trim(),
         slotISO: selectedSlotISO,
+        notes: trimmedNotes,
       });
     } else {
       onUpdate({
         ...state.booking,
         serviceId: effectiveServiceId,
         customerName: customerName.trim(),
+        notes: trimmedNotes,
       });
     }
     onClose();
@@ -391,6 +398,25 @@ export function NewBookingPopover({
               className="h-11 w-full rounded-md border border-zinc-200 bg-white px-3 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-zinc-50 dark:focus:ring-zinc-50"
             />
           </div>
+
+          {(!readOnly || notes.trim().length > 0) && (
+            <div>
+              <label
+                htmlFor="booking-notes"
+                className="mb-1.5 block text-xs font-medium text-zinc-700 dark:text-zinc-300"
+              >
+                Notes
+              </label>
+              <input
+                id="booking-notes"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                readOnly={readOnly}
+                placeholder="(optional)"
+                className="h-11 w-full rounded-md border border-zinc-200 bg-white px-3 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-zinc-50 dark:focus:ring-zinc-50"
+              />
+            </div>
+          )}
 
           <div className="flex items-center justify-between gap-2 pt-2">
             {isEdit && !readOnly ? (
