@@ -9,6 +9,7 @@ interface ServiceRow {
   price_suffix: "+" | null;
   color_class_name: string;
   display_order: number;
+  points: number;
 }
 
 const mapRow = (row: ServiceRow): Service => ({
@@ -19,6 +20,7 @@ const mapRow = (row: ServiceRow): Service => ({
   priceSuffix: row.price_suffix === "+" ? "+" : undefined,
   colorClassName: row.color_class_name,
   displayOrder: row.display_order,
+  points: row.points ?? 1,
 });
 
 const toRow = (s: Omit<Service, "id">) => ({
@@ -28,6 +30,7 @@ const toRow = (s: Omit<Service, "id">) => ({
   price_suffix: s.priceSuffix ?? null,
   color_class_name: s.colorClassName,
   display_order: s.displayOrder,
+  points: s.points,
 });
 
 export const servicesService = {

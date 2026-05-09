@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { parseISO } from "date-fns";
 import type { SidebarTimeStepMinutes } from "@/src/lib/time";
 import type { Booking, BusinessHours, Technician } from "@/src/types";
@@ -9,6 +10,7 @@ import {
   slotsForDay,
 } from "@/src/lib/time";
 import { SLOT_HEIGHT_PX } from "@/src/lib/ui";
+import { useServices } from "@/src/store/useServices";
 import { BookingBlock } from "./BookingBlock";
 
 interface TechnicianColumnProps {
@@ -50,6 +52,15 @@ export function TechnicianColumn({
   onBookingDragEnd,
   nowLineTop = null,
 }: TechnicianColumnProps) {
+  const services = useServices((s) => s.services);
+  const dayPoints = useMemo(() => {
+    const byId = new Map(services.map((svc) => [svc.id, svc.points]));
+    return bookings.reduce(
+      (sum, b) => sum + (byId.get(b.serviceId) ?? 1),
+      0,
+    );
+  }, [bookings, services]);
+
   const slots = slotsForDay(date, timezone, businessHours);
   const hasBookings = bookings.length > 0;
   const warn = !isClockedIn && hasBookings;
@@ -91,7 +102,18 @@ export function TechnicianColumn({
       }`}
     >
       <div className={headerClass} title={subtitleTitle}>
-        <span>{technician.firstName}</span>
+        <span className="inline-flex flex-wrap items-center justify-center gap-x-1">
+          <span>{technician.firstName}</span>
+          <span
+            className={
+              warn
+                ? "font-normal text-amber-800/85 dark:text-amber-200/90"
+                : "font-normal text-zinc-500 dark:text-zinc-400"
+            }
+          >
+            ({dayPoints})
+          </span>
+        </span>
         {subtitle && <span className={subtitleClass}>{subtitle}</span>}
       </div>
 

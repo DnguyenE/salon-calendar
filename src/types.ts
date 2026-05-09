@@ -6,6 +6,8 @@ export interface Service {
   priceSuffix?: "+";
   colorClassName: string;
   displayOrder: number;
+  /** Weight toward daily calendar point totals for this booking type (default 1). */
+  points: number;
 }
 
 export interface Technician {

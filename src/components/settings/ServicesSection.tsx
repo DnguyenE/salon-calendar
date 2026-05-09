@@ -56,6 +56,7 @@ export function ServicesSection({ organizationId }: ServicesSectionProps) {
         priceCents: 0,
         colorClassName: nextColor.className,
         displayOrder: nextOrder,
+        points: 1,
       },
       organizationId,
     );
@@ -74,7 +75,7 @@ export function ServicesSection({ organizationId }: ServicesSectionProps) {
   return (
     <SettingsSection
       title="Services"
-      description="Edit names, durations, prices, and colors. Add or remove services as needed."
+      description="Edit names, durations, prices, calendar points, and colors. Points sum in each technician column for the day (combos can count extra)."
     >
       {error && (
         <p
@@ -156,7 +157,8 @@ function ServiceRow({
     draft.durationMinutes !== service.durationMinutes ||
     draft.priceCents !== service.priceCents ||
     draft.priceSuffix !== service.priceSuffix ||
-    draft.colorClassName !== service.colorClassName;
+    draft.colorClassName !== service.colorClassName ||
+    draft.points !== service.points;
 
   const save = () => dirty && onChange(draft);
   const cancel = () => setDraft(service);
@@ -202,6 +204,12 @@ function ServiceRow({
           onChange={(durationMinutes) =>
             setDraft((d) => ({ ...d, durationMinutes }))
           }
+          onKeyDown={onKey}
+        />
+
+        <PointsInput
+          value={draft.points}
+          onChange={(points) => setDraft((d) => ({ ...d, points }))}
           onKeyDown={onKey}
         />
 
@@ -273,6 +281,35 @@ interface DurationInputProps {
   value: number;
   onChange: (value: number) => void;
   onKeyDown?: (e: React.KeyboardEvent) => void;
+}
+
+interface PointsInputProps {
+  value: number;
+  onChange: (value: number) => void;
+  onKeyDown?: (e: React.KeyboardEvent) => void;
+}
+
+function PointsInput({ value, onChange, onKeyDown }: PointsInputProps) {
+  return (
+    <label className="inline-flex items-center gap-1 rounded-md border border-zinc-200 bg-white pl-2 pr-2 dark:border-zinc-700 dark:bg-zinc-900">
+      <span className="select-none text-xs text-zinc-500 dark:text-zinc-400">
+        pts
+      </span>
+      <input
+        type="text"
+        inputMode="numeric"
+        value={value}
+        onChange={(e) => {
+          const n = Number(e.target.value);
+          if (Number.isFinite(n) && n >= 1) onChange(Math.floor(n));
+        }}
+        onKeyDown={onKeyDown}
+        aria-label="Calendar points per booking"
+        title="How many points this service adds to the technician’s daily total"
+        className="w-8 bg-transparent py-1.5 text-right text-sm text-zinc-900 outline-none dark:text-zinc-100"
+      />
+    </label>
+  );
 }
 
 function DurationInput({ value, onChange, onKeyDown }: DurationInputProps) {
