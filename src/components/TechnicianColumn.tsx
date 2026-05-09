@@ -159,7 +159,7 @@ export function TechnicianColumn({
 
   return (
     <div
-      className={`flex min-w-[150px] flex-1 flex-col border-r last:border-r-0 md:min-w-[170px] ${
+      className={`flex h-min min-w-[150px] flex-1 flex-col self-start border-r last:border-r-0 md:min-w-[170px] ${
         warn
           ? "border-zinc-200 bg-amber-50/30 dark:border-zinc-800 dark:bg-amber-950/10"
           : "border-zinc-200 dark:border-zinc-800"
@@ -183,7 +183,7 @@ export function TechnicianColumn({
 
       <div
         ref={gridBodyRef}
-        className="relative"
+        className="relative border-b border-zinc-300 dark:border-zinc-700"
         style={{ height: slots.length * SLOT_HEIGHT_PX }}
       >
         {slots.map((slot, idx) => {

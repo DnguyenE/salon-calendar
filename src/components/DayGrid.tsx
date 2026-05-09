@@ -92,15 +92,18 @@ export function DayGrid({
 
   return (
     <div
-      className="flex flex-1 overflow-auto bg-white [webkit-overflow-scrolling:touch] dark:bg-zinc-950"
+      className="flex min-h-0 flex-1 items-start overflow-auto bg-white [webkit-overflow-scrolling:touch] dark:bg-zinc-950"
       style={{ touchAction: "pan-x pan-y" }}
     >
       <div
-        className="sticky left-0 z-20 flex-shrink-0 border-r border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950"
+        className="sticky left-0 z-20 flex-shrink-0 self-start border-r border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950"
         style={{ width: TIME_AXIS_WIDTH_PX }}
       >
         <div className="sticky top-0 z-10 h-12 border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950" />
-        <div className="relative" style={{ height: slots.length * SLOT_HEIGHT_PX }}>
+        <div
+          className="relative border-b border-zinc-300 dark:border-zinc-700"
+          style={{ height: slots.length * SLOT_HEIGHT_PX }}
+        >
           {slots.map((slot, idx) => {
             const minutes = minutesSinceDayStart(slot, timezone, businessHours);
             if (minutes % sidebarTimeStepMinutes !== 0) return null;
@@ -123,7 +126,7 @@ export function DayGrid({
         </div>
       </div>
 
-      <div className="flex min-w-0 flex-1 select-none">
+      <div className="flex min-h-0 min-w-0 flex-1 items-start select-none">
         {technicians.map((technician) => (
           <TechnicianColumn
             key={technician.id}
