@@ -49,6 +49,7 @@ interface NewBookingPopoverProps {
     customerName: string;
     slotISO: string;
     notes?: string | null;
+    guestCheckedIn?: boolean;
   }) => void;
   onUpdate: (booking: Booking) => void;
   onDelete: (bookingId: string) => void;
@@ -105,6 +106,8 @@ export function NewBookingPopover({
   const initialName = state.mode === "edit" ? state.booking.customerName : "";
   const initialNotes =
     state.mode === "edit" ? (state.booking.notes ?? "") : "";
+  const initialGuestCheckedIn =
+    state.mode === "edit" ? Boolean(state.booking.guestCheckedIn) : false;
 
   const [selectedSlotISO, setSelectedSlotISO] = useState(initialSlotISO);
   const [techSelection, setTechSelection] =
@@ -112,6 +115,7 @@ export function NewBookingPopover({
   const [serviceId, setServiceId] = useState(initialServiceId);
   const [customerName, setCustomerName] = useState(initialName);
   const [notes, setNotes] = useState(initialNotes);
+  const [guestCheckedIn, setGuestCheckedIn] = useState(initialGuestCheckedIn);
   const nameInputRef = useRef<HTMLInputElement>(null);
 
   const start = useMemo(() => parseISO(selectedSlotISO), [selectedSlotISO]);
@@ -263,6 +267,7 @@ export function NewBookingPopover({
         customerName: customerName.trim(),
         slotISO: selectedSlotISO,
         notes: trimmedNotes,
+        guestCheckedIn,
       });
     } else {
       onUpdate({
@@ -270,6 +275,7 @@ export function NewBookingPopover({
         serviceId: effectiveServiceId,
         customerName: customerName.trim(),
         notes: trimmedNotes,
+        guestCheckedIn,
       });
     }
     onClose();
@@ -425,6 +431,19 @@ export function NewBookingPopover({
               className="h-11 w-full rounded-md border border-zinc-200 bg-white px-3 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-zinc-50 dark:focus:ring-zinc-50"
             />
           </div>
+
+          <label className="flex cursor-pointer items-center gap-2.5">
+            <input
+              type="checkbox"
+              checked={guestCheckedIn}
+              disabled={readOnly}
+              onChange={(e) => setGuestCheckedIn(e.target.checked)}
+              className="h-4 w-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-600 dark:bg-zinc-800 dark:focus:ring-zinc-50"
+            />
+            <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+              Checked in — client is here (appointment crossed out on calendar)
+            </span>
+          </label>
 
           {(!readOnly || notes.trim().length > 0) && (
             <div>

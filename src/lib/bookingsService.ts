@@ -15,6 +15,7 @@ export interface BookingMutationInput {
   startISO: string;
   durationMinutes: number;
   notes?: string | null;
+  guestCheckedIn?: boolean;
 }
 
 interface BookingRow {
@@ -26,6 +27,7 @@ interface BookingRow {
   start_at: string;
   end_at: string;
   notes: string | null;
+  guest_checked_in: boolean;
 }
 
 let organizationIdPromise: Promise<string> | null = null;
@@ -37,6 +39,7 @@ const rowToBooking = (row: BookingRow): Booking => ({
   customerName: row.customer_name,
   startISO: row.start_at,
   notes: row.notes,
+  guestCheckedIn: Boolean(row.guest_checked_in),
 });
 
 function toEndISO(startISO: string, durationMinutes: number): string {
@@ -77,7 +80,7 @@ export const supabaseBookingsService: BookingsService = {
     const { data, error } = await createClient()
       .from("bookings")
       .select(
-        "id, organization_id, technician_id, service_id, customer_name, start_at, end_at, notes",
+        "id, organization_id, technician_id, service_id, customer_name, start_at, end_at, notes, guest_checked_in",
       )
       .order("start_at", { ascending: true });
     if (error) throw error;
@@ -93,12 +96,13 @@ export const supabaseBookingsService: BookingsService = {
       start_at: booking.startISO,
       end_at: toEndISO(booking.startISO, booking.durationMinutes),
       notes: booking.notes ?? null,
+      guest_checked_in: booking.guestCheckedIn ?? false,
     };
     const { data, error } = await createClient()
       .from("bookings")
       .insert(payload)
       .select(
-        "id, organization_id, technician_id, service_id, customer_name, start_at, end_at, notes",
+        "id, organization_id, technician_id, service_id, customer_name, start_at, end_at, notes, guest_checked_in",
       )
       .single();
     if (error) throw error;
@@ -113,13 +117,14 @@ export const supabaseBookingsService: BookingsService = {
       start_at: booking.startISO,
       end_at: toEndISO(booking.startISO, booking.durationMinutes),
       notes: booking.notes ?? null,
+      guest_checked_in: booking.guestCheckedIn ?? false,
     };
     const { data, error } = await createClient()
       .from("bookings")
       .update(payload)
       .eq("id", booking.id)
       .select(
-        "id, organization_id, technician_id, service_id, customer_name, start_at, end_at, notes",
+        "id, organization_id, technician_id, service_id, customer_name, start_at, end_at, notes, guest_checked_in",
       )
       .single();
     if (error) throw error;

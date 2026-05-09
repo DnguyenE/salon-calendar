@@ -29,6 +29,8 @@ export interface Booking {
   customerName: string;
   startISO: string;
   notes?: string | null;
+  /** Client has checked in / is here (calendar shows name with strikethrough). */
+  guestCheckedIn: boolean;
 }
 
 export type ProfileRole = "admin" | "staff";

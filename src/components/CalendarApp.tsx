@@ -198,12 +198,14 @@ export function CalendarApp({
       customerName,
       slotISO,
       notes,
+      guestCheckedIn,
     }: {
       technicianId: string;
       serviceId: string;
       customerName: string;
       slotISO: string;
       notes?: string | null;
+      guestCheckedIn?: boolean;
     }) => {
       const service = services.find((s) => s.id === serviceId);
       if (!service) return;
@@ -214,6 +216,7 @@ export function CalendarApp({
         startISO: slotISO,
         durationMinutes: service.durationMinutes,
         notes: notes ?? null,
+        guestCheckedIn: guestCheckedIn ?? false,
       });
     },
     [addBooking, services],
@@ -231,6 +234,7 @@ export function CalendarApp({
         startISO: booking.startISO,
         durationMinutes: service.durationMinutes,
         notes: booking.notes,
+        guestCheckedIn: booking.guestCheckedIn,
       });
     },
     [services, updateBooking],
@@ -241,6 +245,28 @@ export function CalendarApp({
       void deleteBooking(id);
     },
     [deleteBooking],
+  );
+
+  const handleToggleGuestCheckedIn = useCallback(
+    (bookingId: string) => {
+      if (!canMutateBookings) return;
+      const booking = bookings.find((b) => b.id === bookingId);
+      const service = booking
+        ? services.find((s) => s.id === booking.serviceId)
+        : undefined;
+      if (!booking || !service) return;
+      void updateBooking({
+        id: booking.id,
+        technicianId: booking.technicianId,
+        serviceId: booking.serviceId,
+        customerName: booking.customerName,
+        startISO: booking.startISO,
+        durationMinutes: service.durationMinutes,
+        notes: booking.notes,
+        guestCheckedIn: !booking.guestCheckedIn,
+      });
+    },
+    [bookings, canMutateBookings, services, updateBooking],
   );
 
   const handleBookingDragStart = useCallback(
@@ -343,6 +369,7 @@ export function CalendarApp({
         startISO: slotISO,
         durationMinutes: service.durationMinutes,
         notes: dragged.notes,
+        guestCheckedIn: dragged.guestCheckedIn,
       });
       resetBookingDragSurface();
     },
@@ -487,6 +514,9 @@ export function CalendarApp({
             clockedInIds={clockedInIds}
             onSlotClick={handleSlotClick}
             onBookingClick={handleBookingClick}
+            onToggleGuestCheckedIn={
+              canMutateBookings ? handleToggleGuestCheckedIn : undefined
+            }
             canCreateFromSlots={canMutateBookings}
             canDragBookings={canMutateBookings}
             bookingDragActive={bookingDragActive}
@@ -505,6 +535,11 @@ export function CalendarApp({
 
       {popover && hasStaff && (
         <NewBookingPopover
+          key={
+            popover.mode === "edit"
+              ? `edit-${popover.booking.id}`
+              : `new-${popover.slotISO}`
+          }
           state={popover}
           timezone={timezone}
           businessHours={businessHours}
@@ -521,6 +556,9 @@ export function CalendarApp({
       <footer className="border-t border-zinc-200 bg-white px-4 py-2 text-[11px] text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-400">
         Tip: ← / → to change days · T for today · Click a slot to book a
         specific tech · Use “+ New appointment” for any tech
+        {canMutateBookings
+          ? " · Tap ○ or ✓ on a booking to toggle checked-in"
+          : ""}
       </footer>
     </div>
   );

@@ -25,7 +25,7 @@ values (
   'client-flow',
   9,
   19,
-  30,
+  15,
   'hello@clientflow.test',
   '+1-555-0100',
   '123 Test Street, Demo City',

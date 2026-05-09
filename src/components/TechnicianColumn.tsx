@@ -41,6 +41,7 @@ interface TechnicianColumnProps {
   isClockedIn?: boolean;
   onSlotClick: (technicianId: string, slot: Date) => void;
   onBookingClick: (bookingId: string) => void;
+  onToggleGuestCheckedIn?: (bookingId: string) => void;
   canCreateFromSlots?: boolean;
   canDragBookings?: boolean;
   bookingDragActive?: boolean;
@@ -67,6 +68,7 @@ export function TechnicianColumn({
   isClockedIn = true,
   onSlotClick,
   onBookingClick,
+  onToggleGuestCheckedIn,
   canCreateFromSlots = true,
   canDragBookings = false,
   bookingDragActive = false,
@@ -268,6 +270,7 @@ export function TechnicianColumn({
               businessHours={businessHours}
               topRow={topRow}
               onClick={() => onBookingClick(booking.id)}
+              onToggleGuestCheckedIn={onToggleGuestCheckedIn}
               canDrag={canDragBookings}
               dimmed={
                 bookingDragActive && draggingBookingId === booking.id

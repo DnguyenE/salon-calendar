@@ -33,6 +33,7 @@ interface DayGridProps {
   clockedInIds?: ReadonlySet<string>;
   onSlotClick: (technicianId: string, slot: Date) => void;
   onBookingClick: (bookingId: string) => void;
+  onToggleGuestCheckedIn?: (bookingId: string) => void;
   canCreateFromSlots?: boolean;
   canDragBookings?: boolean;
   bookingDragActive?: boolean;
@@ -57,6 +58,7 @@ export function DayGrid({
   clockedInIds,
   onSlotClick,
   onBookingClick,
+  onToggleGuestCheckedIn,
   canCreateFromSlots = true,
   canDragBookings = false,
   bookingDragActive = false,
@@ -143,6 +145,7 @@ export function DayGrid({
             isClockedIn={clockedInIds ? clockedInIds.has(technician.id) : true}
             onSlotClick={onSlotClick}
             onBookingClick={onBookingClick}
+            onToggleGuestCheckedIn={onToggleGuestCheckedIn}
             canCreateFromSlots={canCreateFromSlots}
             canDragBookings={canDragBookings}
             bookingDragActive={bookingDragActive}
