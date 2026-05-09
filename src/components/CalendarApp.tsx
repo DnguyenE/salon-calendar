@@ -15,6 +15,7 @@ import {
   rangeOverlapsBooking,
   wouldFitInDay,
 } from "@/src/lib/time";
+import type { SidebarTimeStepMinutes } from "@/src/lib/time";
 import { CalendarHeader } from "./CalendarHeader";
 import { DayGrid } from "./DayGrid";
 import {
@@ -26,12 +27,14 @@ interface CalendarAppProps {
   viewerRole: "admin" | "staff";
   orgName: string;
   timezone: string;
+  sidebarTimeStepMinutes: SidebarTimeStepMinutes;
 }
 
 export function CalendarApp({
   viewerRole,
   orgName,
   timezone,
+  sidebarTimeStepMinutes,
 }: CalendarAppProps) {
   // `date` is treated as "any moment that lies on the desired calendar day in
   // the org's timezone". We never read its hour/minute directly; we always
@@ -387,6 +390,7 @@ export function CalendarApp({
           <DayGrid
             date={date}
             timezone={timezone}
+            sidebarTimeStepMinutes={sidebarTimeStepMinutes}
             technicians={orderedTechnicians}
             bookings={todaysBookings}
             clockedInIds={clockedInIds}

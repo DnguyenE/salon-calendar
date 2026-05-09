@@ -1,6 +1,7 @@
 "use client";
 
 import { parseISO } from "date-fns";
+import type { SidebarTimeStepMinutes } from "@/src/lib/time";
 import type { Booking, Technician } from "@/src/types";
 import { BUSINESS_HOURS } from "@/src/lib/config";
 import {
@@ -15,6 +16,7 @@ interface TechnicianColumnProps {
   technician: Technician;
   date: Date;
   timezone: string;
+  sidebarTimeStepMinutes: SidebarTimeStepMinutes;
   bookings: Booking[];
   isClockedIn?: boolean;
   onSlotClick: (technicianId: string, slot: Date) => void;
@@ -33,6 +35,7 @@ export function TechnicianColumn({
   technician,
   date,
   timezone,
+  sidebarTimeStepMinutes,
   bookings,
   isClockedIn = true,
   onSlotClick,
@@ -96,12 +99,19 @@ export function TechnicianColumn({
         style={{ height: slots.length * SLOT_HEIGHT_PX }}
       >
         {slots.map((slot, idx) => {
-          const isHourStart = minutesSinceDayStart(slot, timezone) % 60 === 0;
+          const minutes = minutesSinceDayStart(slot, timezone);
+          const onHourLine = minutes % 60 === 0;
+          const onStepLine =
+            !onHourLine &&
+            sidebarTimeStepMinutes < 60 &&
+            minutes % sidebarTimeStepMinutes === 0;
           let borderClass = "";
           if (idx === 0) {
             borderClass = "";
-          } else if (isHourStart) {
+          } else if (onHourLine) {
             borderClass = "border-t border-zinc-300 dark:border-zinc-700";
+          } else if (onStepLine) {
+            borderClass = "border-t border-zinc-200 dark:border-zinc-800";
           } else {
             borderClass =
               "border-t border-dashed border-zinc-100/80 dark:border-zinc-900";

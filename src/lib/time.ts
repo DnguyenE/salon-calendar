@@ -146,6 +146,25 @@ export function formatHourLabel(slot: Date, tz: string): string {
   return formatInTimeZone(slot, tz, "h a");
 }
 
+/** Sidebar labels on whole-hour boundaries only use a compact label. */
+export function formatTimeAxisLabel(
+  slot: Date,
+  tz: string,
+  stepMinutes: number,
+): string {
+  if (stepMinutes >= 60) return formatHourLabel(slot, tz);
+  return formatSlotLabel(slot, tz);
+}
+
+export type SidebarTimeStepMinutes = 15 | 30 | 60;
+
+export function normalizeSidebarTimeStep(
+  raw: number | null | undefined,
+): SidebarTimeStepMinutes {
+  if (raw === 15 || raw === 30 || raw === 60) return raw;
+  return 60;
+}
+
 export function minutesSinceDayStart(
   date: Date,
   tz: string,

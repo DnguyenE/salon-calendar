@@ -3,10 +3,11 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Booking, Technician } from "@/src/types";
 import { BUSINESS_HOURS } from "@/src/lib/config";
+import type { SidebarTimeStepMinutes } from "@/src/lib/time";
 import {
   dayEnd,
   dayStart,
-  formatHourLabel,
+  formatTimeAxisLabel,
   isSameDayInTz,
   minutesSinceDayStart,
   slotsForDay,
@@ -21,6 +22,7 @@ import { TechnicianColumn } from "./TechnicianColumn";
 interface DayGridProps {
   date: Date;
   timezone: string;
+  sidebarTimeStepMinutes: SidebarTimeStepMinutes;
   technicians: Technician[];
   bookings: Booking[];
   clockedInIds?: ReadonlySet<string>;
@@ -38,6 +40,7 @@ interface DayGridProps {
 export function DayGrid({
   date,
   timezone,
+  sidebarTimeStepMinutes,
   technicians,
   bookings,
   clockedInIds,
@@ -83,15 +86,14 @@ export function DayGrid({
         <div className="relative" style={{ height: slots.length * SLOT_HEIGHT_PX }}>
           {slots.map((slot, idx) => {
             const minutes = minutesSinceDayStart(slot, timezone);
-            const isHourStart = minutes % 60 === 0;
-            if (!isHourStart) return null;
+            if (minutes % sidebarTimeStepMinutes !== 0) return null;
             return (
               <div
                 key={slot.toISOString()}
                 className="absolute inset-x-0 flex items-start justify-end pr-2 pt-0.5 text-[11px] font-medium text-zinc-500 dark:text-zinc-400"
                 style={{ top: idx * SLOT_HEIGHT_PX }}
               >
-                {formatHourLabel(slot, timezone)}
+                {formatTimeAxisLabel(slot, timezone, sidebarTimeStepMinutes)}
               </div>
             );
           })}
@@ -111,6 +113,7 @@ export function DayGrid({
             technician={technician}
             date={date}
             timezone={timezone}
+            sidebarTimeStepMinutes={sidebarTimeStepMinutes}
             bookings={bookings.filter(
               (b) =>
                 b.technicianId === technician.id &&
