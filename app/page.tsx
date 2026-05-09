@@ -2,7 +2,10 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import type { ProfileRole } from "@/src/types";
 import { createClient } from "@/utils/supabase/server";
-import { normalizeSidebarTimeStep } from "@/src/lib/time";
+import {
+  normalizeBusinessHours,
+  normalizeSidebarTimeStep,
+} from "@/src/lib/time";
 import { CalendarApp } from "@/src/components/CalendarApp";
 
 export default async function Home() {
@@ -24,7 +27,9 @@ export default async function Home() {
   const viewerRole: ProfileRole = profile.role === "admin" ? "admin" : "staff";
   const { data: organization } = await supabase
     .from("organizations")
-    .select("name, timezone, sidebar_time_step_minutes")
+    .select(
+      "name, timezone, sidebar_time_step_minutes, open_hour, close_hour, slot_minutes",
+    )
     .eq("id", profile.organization_id)
     .single();
   const orgName = organization?.name ?? "Salon Calendar";
@@ -32,6 +37,7 @@ export default async function Home() {
   const sidebarTimeStepMinutes = normalizeSidebarTimeStep(
     organization?.sidebar_time_step_minutes,
   );
+  const businessHours = normalizeBusinessHours(organization);
 
   return (
     <CalendarApp
@@ -39,6 +45,7 @@ export default async function Home() {
       orgName={orgName}
       timezone={timezone}
       sidebarTimeStepMinutes={sidebarTimeStepMinutes}
+      businessHours={businessHours}
     />
   );
 }

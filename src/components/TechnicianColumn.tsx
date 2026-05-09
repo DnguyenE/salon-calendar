@@ -2,8 +2,7 @@
 
 import { parseISO } from "date-fns";
 import type { SidebarTimeStepMinutes } from "@/src/lib/time";
-import type { Booking, Technician } from "@/src/types";
-import { BUSINESS_HOURS } from "@/src/lib/config";
+import type { Booking, BusinessHours, Technician } from "@/src/types";
 import {
   minutesToRows,
   minutesSinceDayStart,
@@ -16,6 +15,7 @@ interface TechnicianColumnProps {
   technician: Technician;
   date: Date;
   timezone: string;
+  businessHours: BusinessHours;
   sidebarTimeStepMinutes: SidebarTimeStepMinutes;
   bookings: Booking[];
   isClockedIn?: boolean;
@@ -35,6 +35,7 @@ export function TechnicianColumn({
   technician,
   date,
   timezone,
+  businessHours,
   sidebarTimeStepMinutes,
   bookings,
   isClockedIn = true,
@@ -49,7 +50,7 @@ export function TechnicianColumn({
   onBookingDragEnd,
   nowLineTop = null,
 }: TechnicianColumnProps) {
-  const slots = slotsForDay(date, timezone);
+  const slots = slotsForDay(date, timezone, businessHours);
   const hasBookings = bookings.length > 0;
   const warn = !isClockedIn && hasBookings;
 
@@ -99,7 +100,7 @@ export function TechnicianColumn({
         style={{ height: slots.length * SLOT_HEIGHT_PX }}
       >
         {slots.map((slot, idx) => {
-          const minutes = minutesSinceDayStart(slot, timezone);
+          const minutes = minutesSinceDayStart(slot, timezone, businessHours);
           const onHourLine = minutes % 60 === 0;
           const onStepLine =
             !onHourLine &&
@@ -153,14 +154,19 @@ export function TechnicianColumn({
 
         {bookings.map((booking) => {
           const topRow = minutesToRows(
-            minutesSinceDayStart(parseISO(booking.startISO), timezone),
-            BUSINESS_HOURS,
+            minutesSinceDayStart(
+              parseISO(booking.startISO),
+              timezone,
+              businessHours,
+            ),
+            businessHours,
           );
           return (
             <BookingBlock
               key={booking.id}
               booking={booking}
               timezone={timezone}
+              businessHours={businessHours}
               topRow={topRow}
               onClick={() => onBookingClick(booking.id)}
               canDrag={canDragBookings}

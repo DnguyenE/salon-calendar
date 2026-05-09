@@ -165,6 +165,33 @@ export function normalizeSidebarTimeStep(
   return 60;
 }
 
+/** Maps Supabase `organizations` columns to grid/booking window settings. */
+export function normalizeBusinessHours(
+  raw:
+    | {
+        open_hour?: number | null;
+        close_hour?: number | null;
+        slot_minutes?: number | null;
+      }
+    | null
+    | undefined,
+): BusinessHours {
+  const fb = BUSINESS_HOURS;
+  let openHour = Math.round(Number(raw?.open_hour));
+  let closeHour = Math.round(Number(raw?.close_hour));
+  let slotMinutes = Math.round(Number(raw?.slot_minutes));
+  if (!Number.isFinite(openHour)) openHour = fb.openHour;
+  if (!Number.isFinite(closeHour)) closeHour = fb.closeHour;
+  if (!Number.isFinite(slotMinutes)) slotMinutes = fb.slotMinutes;
+  openHour = Math.min(23, Math.max(0, openHour));
+  closeHour = Math.min(24, Math.max(1, closeHour));
+  slotMinutes = Math.min(60, Math.max(5, slotMinutes));
+  if (closeHour <= openHour) {
+    return { ...fb };
+  }
+  return { openHour, closeHour, slotMinutes };
+}
+
 export function minutesSinceDayStart(
   date: Date,
   tz: string,

@@ -3,7 +3,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { parseISO } from "date-fns";
 import { formatInTimeZone } from "date-fns-tz";
-import type { Booking, Service, Technician } from "@/src/types";
+import type {
+  Booking,
+  BusinessHours,
+  Service,
+  Technician,
+} from "@/src/types";
 import { useServices } from "@/src/store/useServices";
 import {
   countAvailableTechs,
@@ -33,6 +38,7 @@ type TechSelection = string | typeof ANY_TECH;
 interface NewBookingPopoverProps {
   state: PopoverState;
   timezone: string;
+  businessHours: BusinessHours;
   technicians: Technician[];
   bookingsForDay: Booking[];
   readOnly?: boolean;
@@ -59,8 +65,9 @@ function isServiceAvailableForTech(
   tz: string,
   bookingsForTech: Booking[],
   ignoreBookingId: string | undefined,
+  hours: BusinessHours,
 ): boolean {
-  if (!wouldFitInDay(start, service, tz)) return false;
+  if (!wouldFitInDay(start, service, tz, hours)) return false;
   return !bookingsForTech.some(
     (b) =>
       b.id !== ignoreBookingId &&
@@ -71,6 +78,7 @@ function isServiceAvailableForTech(
 export function NewBookingPopover({
   state,
   timezone,
+  businessHours,
   technicians,
   bookingsForDay,
   readOnly = false,
@@ -111,8 +119,8 @@ export function NewBookingPopover({
   const ignoreBookingId = state.mode === "edit" ? state.booking.id : undefined;
 
   const slotOptions = useMemo(
-    () => slotsForDay(start, timezone),
-    [start, timezone],
+    () => slotsForDay(start, timezone, businessHours),
+    [businessHours, start, timezone],
   );
 
   const bookingsBySpecificTech = useMemo(() => {
@@ -137,6 +145,7 @@ export function NewBookingPopover({
               techsOffering,
               timezone,
               ignoreBookingId,
+              businessHours,
             ) !== null;
         } else {
           const tech = technicians.find((t) => t.id === techSelection);
@@ -149,11 +158,13 @@ export function NewBookingPopover({
               timezone,
               bookingsBySpecificTech,
               ignoreBookingId,
+              businessHours,
             );
         }
         return { service: s, available };
       }),
     [
+      businessHours,
       services,
       technicians,
       start,
@@ -196,8 +207,10 @@ export function NewBookingPopover({
       techsOfferingSelected,
       timezone,
       ignoreBookingId,
+      businessHours,
     );
   }, [
+    businessHours,
     selectedService,
     start,
     bookingsForDay,
@@ -237,6 +250,7 @@ export function NewBookingPopover({
           techsOfferingSelected,
           timezone,
           ignoreBookingId,
+          businessHours,
         );
         if (!tech) return;
         resolvedTechId = tech.id;

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { addDays, parseISO } from "date-fns";
-import type { Booking, Technician } from "@/src/types";
+import type { Booking, BusinessHours, Technician } from "@/src/types";
 import { getDailyRoundRobin } from "@/app/actions/roundRobin";
 import { useBookings } from "@/src/store/useBookings";
 import { useServices } from "@/src/store/useServices";
@@ -28,6 +28,7 @@ interface CalendarAppProps {
   orgName: string;
   timezone: string;
   sidebarTimeStepMinutes: SidebarTimeStepMinutes;
+  businessHours: BusinessHours;
 }
 
 export function CalendarApp({
@@ -35,6 +36,7 @@ export function CalendarApp({
   orgName,
   timezone,
   sidebarTimeStepMinutes,
+  businessHours,
 }: CalendarAppProps) {
   // `date` is treated as "any moment that lies on the desired calendar day in
   // the org's timezone". We never read its hour/minute directly; we always
@@ -180,9 +182,9 @@ export function CalendarApp({
 
   const handleNewAppointment = useCallback(() => {
     if (!hasStaff || !canMutateBookings) return;
-    const slot = defaultSlotForDay(date, timezone);
+    const slot = defaultSlotForDay(date, timezone, new Date(), businessHours);
     setPopover({ mode: "new", slotISO: slot.toISOString() });
-  }, [canMutateBookings, date, hasStaff, timezone]);
+  }, [businessHours, canMutateBookings, date, hasStaff, timezone]);
 
   const handleCreate = useCallback(
     ({
@@ -282,7 +284,7 @@ export function CalendarApp({
       }
 
       const newStart = parseISO(slotISO);
-      if (!wouldFitInDay(newStart, service, timezone)) {
+      if (!wouldFitInDay(newStart, service, timezone, businessHours)) {
         setDragError("Cannot move booking outside business hours.");
         setDraggingBookingId(null);
         setDragOverTarget(null);
@@ -317,6 +319,7 @@ export function CalendarApp({
     },
     [
       bookings,
+      businessHours,
       canMutateBookings,
       draggingBookingId,
       services,
@@ -390,6 +393,7 @@ export function CalendarApp({
           <DayGrid
             date={date}
             timezone={timezone}
+            businessHours={businessHours}
             sidebarTimeStepMinutes={sidebarTimeStepMinutes}
             technicians={orderedTechnicians}
             bookings={todaysBookings}
@@ -411,6 +415,7 @@ export function CalendarApp({
         <NewBookingPopover
           state={popover}
           timezone={timezone}
+          businessHours={businessHours}
           technicians={orderedTechnicians}
           bookingsForDay={bookingsForPopoverDay}
           onClose={() => setPopover(null)}

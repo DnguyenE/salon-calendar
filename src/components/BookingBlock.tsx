@@ -3,15 +3,14 @@
 import { useRef } from "react";
 import { parseISO } from "date-fns";
 import { formatInTimeZone } from "date-fns-tz";
-import type { Booking } from "@/src/types";
+import type { Booking, BusinessHours } from "@/src/types";
 import { useServices } from "@/src/store/useServices";
 import { bookingEnd } from "@/src/lib/time";
 import { SLOT_HEIGHT_PX } from "@/src/lib/ui";
-import { BUSINESS_HOURS } from "@/src/lib/config";
-
 interface BookingBlockProps {
   booking: Booking;
   timezone: string;
+  businessHours: BusinessHours;
   topRow: number;
   onClick: () => void;
   canDrag?: boolean;
@@ -22,6 +21,7 @@ interface BookingBlockProps {
 export function BookingBlock({
   booking,
   timezone,
+  businessHours,
   topRow,
   onClick,
   canDrag = false,
@@ -34,7 +34,9 @@ export function BookingBlock({
   );
   if (!service) return null;
 
-  const heightRows = Math.round(service.durationMinutes / BUSINESS_HOURS.slotMinutes);
+  const heightRows = Math.round(
+    service.durationMinutes / businessHours.slotMinutes,
+  );
   const start = parseISO(booking.startISO);
   const end = bookingEnd(booking);
   const note = booking.notes?.trim() || null;
