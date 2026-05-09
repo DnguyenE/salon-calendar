@@ -33,6 +33,16 @@ export interface Booking {
 
 export type ProfileRole = "admin" | "staff";
 
+/** Drop preview while dragging a booking between slots/columns. */
+export interface DragGhostPreview {
+  technicianId: string;
+  slotISO: string;
+  durationMinutes: number;
+  colorClassName: string;
+  label: string;
+  valid: boolean;
+}
+
 export interface BusinessHours {
   openHour: number;
   closeHour: number;

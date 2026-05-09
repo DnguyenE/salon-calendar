@@ -1,9 +1,14 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import { parseISO } from "date-fns";
 import type { SidebarTimeStepMinutes } from "@/src/lib/time";
-import type { Booking, BusinessHours, Technician } from "@/src/types";
+import type {
+  Booking,
+  BusinessHours,
+  DragGhostPreview,
+  Technician,
+} from "@/src/types";
 import {
   minutesToRows,
   minutesSinceDayStart,
@@ -12,6 +17,19 @@ import {
 import { SLOT_HEIGHT_PX } from "@/src/lib/ui";
 import { useServices } from "@/src/store/useServices";
 import { BookingBlock } from "./BookingBlock";
+
+function clampedStartRowFromPointerY(
+  clientY: number,
+  gridTopY: number,
+  slotsLength: number,
+  durationRows: number,
+): number {
+  const y = clientY - gridTopY;
+  const rawRow = Math.floor(y / SLOT_HEIGHT_PX);
+  const safeDuration = Math.max(1, durationRows);
+  const maxStartRow = Math.max(0, slotsLength - safeDuration);
+  return Math.min(Math.max(0, rawRow), maxStartRow);
+}
 
 interface TechnicianColumnProps {
   technician: Technician;
@@ -25,7 +43,13 @@ interface TechnicianColumnProps {
   onBookingClick: (bookingId: string) => void;
   canCreateFromSlots?: boolean;
   canDragBookings?: boolean;
+  bookingDragActive?: boolean;
+  /** Full-column drag layer; deferred so native dragstart is not cancelled by DOM updates. */
+  bookingDragCaptureReady?: boolean;
+  draggingBookingId?: string | null;
+  dragSnapDurationMinutes?: number | null;
   activeDropSlotISO?: string | null;
+  dragGhost?: DragGhostPreview | null;
   onSlotDragOver?: (technicianId: string, slotISO: string) => void;
   onSlotDrop?: (technicianId: string, slotISO: string) => void;
   onBookingDragStart?: (bookingId: string) => void;
@@ -45,7 +69,12 @@ export function TechnicianColumn({
   onBookingClick,
   canCreateFromSlots = true,
   canDragBookings = false,
+  bookingDragActive = false,
+  bookingDragCaptureReady = false,
+  draggingBookingId = null,
+  dragSnapDurationMinutes = null,
   activeDropSlotISO = null,
+  dragGhost = null,
   onSlotDragOver,
   onSlotDrop,
   onBookingDragStart,
@@ -53,6 +82,7 @@ export function TechnicianColumn({
   nowLineTop = null,
 }: TechnicianColumnProps) {
   const services = useServices((s) => s.services);
+  const gridBodyRef = useRef<HTMLDivElement>(null);
   const dayPoints = useMemo(() => {
     const byId = new Map(services.map((svc) => [svc.id, svc.points]));
     return bookings.reduce(
@@ -62,6 +92,40 @@ export function TechnicianColumn({
   }, [bookings, services]);
 
   const slots = slotsForDay(date, timezone, businessHours);
+  const placementDurationRows = Math.max(
+    1,
+    Math.round(
+      (dragSnapDurationMinutes ?? businessHours.slotMinutes) /
+        businessHours.slotMinutes,
+    ),
+  );
+
+  const reportSlotFromPointer = (clientY: number, gridEl: HTMLElement) => {
+    if (!onSlotDragOver) return;
+    const row = clampedStartRowFromPointerY(
+      clientY,
+      gridEl.getBoundingClientRect().top,
+      slots.length,
+      placementDurationRows,
+    );
+    const slot = slots[row];
+    if (!slot) return;
+    onSlotDragOver?.(technician.id, slot.toISOString());
+  };
+
+  const dropAtPointer = (clientY: number, gridEl: HTMLElement) => {
+    if (!onSlotDrop) return;
+    const row = clampedStartRowFromPointerY(
+      clientY,
+      gridEl.getBoundingClientRect().top,
+      slots.length,
+      placementDurationRows,
+    );
+    const slot = slots[row];
+    if (!slot) return;
+    onSlotDrop?.(technician.id, slot.toISOString());
+  };
+
   const hasBookings = bookings.length > 0;
   const warn = !isClockedIn && hasBookings;
 
@@ -118,6 +182,7 @@ export function TechnicianColumn({
       </div>
 
       <div
+        ref={gridBodyRef}
         className="relative"
         style={{ height: slots.length * SLOT_HEIGHT_PX }}
       >
@@ -145,13 +210,25 @@ export function TechnicianColumn({
               type="button"
               onClick={() => onSlotClick(technician.id, slot)}
               onDragOver={(e) => {
-                if (!canDragBookings) return;
+                if (
+                  !canDragBookings ||
+                  !bookingDragActive ||
+                  bookingDragCaptureReady
+                ) {
+                  return;
+                }
                 e.preventDefault();
                 e.dataTransfer.dropEffect = "move";
                 onSlotDragOver?.(technician.id, slot.toISOString());
               }}
               onDrop={(e) => {
-                if (!canDragBookings) return;
+                if (
+                  !canDragBookings ||
+                  !bookingDragActive ||
+                  bookingDragCaptureReady
+                ) {
+                  return;
+                }
                 e.preventDefault();
                 onSlotDrop?.(technician.id, slot.toISOString());
               }}
@@ -192,16 +269,76 @@ export function TechnicianColumn({
               topRow={topRow}
               onClick={() => onBookingClick(booking.id)}
               canDrag={canDragBookings}
+              dimmed={
+                bookingDragActive && draggingBookingId === booking.id
+              }
               onDragStart={onBookingDragStart}
               onDragEnd={onBookingDragEnd}
             />
           );
         })}
 
+        {bookingDragActive && dragGhost && (
+          <div
+            className={`pointer-events-none absolute inset-x-1 z-[22] flex flex-col overflow-hidden rounded-md border-2 border-dashed px-2 py-0.5 text-left text-xs font-semibold shadow-none ring-0 transition-colors ${
+              dragGhost.valid
+                ? `${dragGhost.colorClassName} border-zinc-950/25 opacity-[0.42] dark:border-white/40 dark:opacity-[0.38]`
+                : "border-rose-500 bg-rose-500/20 text-rose-950 dark:border-rose-400 dark:bg-rose-500/25 dark:text-rose-50"
+            } `}
+            style={{
+              top:
+                minutesToRows(
+                  minutesSinceDayStart(
+                    parseISO(dragGhost.slotISO),
+                    timezone,
+                    businessHours,
+                  ),
+                  businessHours,
+                ) *
+                  SLOT_HEIGHT_PX +
+                2,
+              height:
+                Math.round(
+                  dragGhost.durationMinutes / businessHours.slotMinutes,
+                ) *
+                  SLOT_HEIGHT_PX -
+                4,
+            }}
+          >
+            <span className="truncate leading-tight">{dragGhost.label}</span>
+            <span className="text-[10px] font-normal leading-tight opacity-90">
+              {dragGhost.valid ? "Drop here" : "Unavailable"}
+            </span>
+          </div>
+        )}
+
         {nowLineTop !== null && (
           <div
             className="pointer-events-none absolute inset-x-0 z-20 border-t border-rose-500"
             style={{ top: nowLineTop }}
+          />
+        )}
+
+        {canDragBookings &&
+          bookingDragActive &&
+          bookingDragCaptureReady && (
+          <div
+            className="absolute inset-0 z-[25]"
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              e.dataTransfer.dropEffect = "move";
+              const gridEl = gridBodyRef.current;
+              if (!gridEl) return;
+              reportSlotFromPointer(e.clientY, gridEl);
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              const gridEl = gridBodyRef.current;
+              if (!gridEl) return;
+              dropAtPointer(e.clientY, gridEl);
+            }}
           />
         )}
       </div>

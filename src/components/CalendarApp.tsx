@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { addDays, parseISO } from "date-fns";
 import type { Booking, BusinessHours, Technician } from "@/src/types";
@@ -45,6 +45,11 @@ export function CalendarApp({
   const [popover, setPopover] = useState<PopoverState | null>(null);
   const [roundRobinIds, setRoundRobinIds] = useState<string[]>([]);
   const [draggingBookingId, setDraggingBookingId] = useState<string | null>(null);
+  /** Sync with draggingBookingId for drop/hover during HTML5 drag (refs avoid stale closures). */
+  const draggingBookingIdRef = useRef<string | null>(null);
+  const dragCaptureTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [bookingDragCaptureReady, setBookingDragCaptureReady] =
+    useState(false);
   const [dragOverTarget, setDragOverTarget] = useState<{
     technicianId: string;
     slotISO: string;
@@ -242,35 +247,63 @@ export function CalendarApp({
     (bookingId: string) => {
       if (!canMutateBookings) return;
       setDragError(null);
+      draggingBookingIdRef.current = bookingId;
       setDraggingBookingId(bookingId);
+      setBookingDragCaptureReady(false);
+      if (dragCaptureTimerRef.current !== null) {
+        clearTimeout(dragCaptureTimerRef.current);
+      }
+      dragCaptureTimerRef.current = setTimeout(() => {
+        dragCaptureTimerRef.current = null;
+        setBookingDragCaptureReady(true);
+      }, 0);
     },
     [canMutateBookings],
   );
 
-  const handleBookingDragEnd = useCallback(() => {
+  const resetBookingDragSurface = useCallback(() => {
+    if (dragCaptureTimerRef.current !== null) {
+      clearTimeout(dragCaptureTimerRef.current);
+      dragCaptureTimerRef.current = null;
+    }
+    draggingBookingIdRef.current = null;
     setDraggingBookingId(null);
+    setBookingDragCaptureReady(false);
     setDragOverTarget(null);
   }, []);
 
+  const handleBookingDragEnd = useCallback(() => {
+    resetBookingDragSurface();
+  }, [resetBookingDragSurface]);
+
   const handleSlotDragOver = useCallback(
     (technicianId: string, slotISO: string) => {
-      if (!canMutateBookings || !draggingBookingId) return;
-      setDragOverTarget({ technicianId, slotISO });
+      if (!canMutateBookings || !draggingBookingIdRef.current) return;
+      setDragOverTarget((prev) => {
+        if (
+          prev?.technicianId === technicianId &&
+          prev.slotISO === slotISO
+        ) {
+          return prev;
+        }
+        return { technicianId, slotISO };
+      });
     },
-    [canMutateBookings, draggingBookingId],
+    [canMutateBookings],
   );
 
   const handleSlotDrop = useCallback(
     (technicianId: string, slotISO: string) => {
-      if (!canMutateBookings || !draggingBookingId) return;
+      if (!canMutateBookings) return;
+      const activeDragId = draggingBookingIdRef.current;
+      if (!activeDragId) return;
 
-      const dragged = bookings.find((b) => b.id === draggingBookingId);
+      const dragged = bookings.find((b) => b.id === activeDragId);
       const service = dragged
         ? services.find((s) => s.id === dragged.serviceId)
         : undefined;
       if (!dragged || !service) {
-        setDraggingBookingId(null);
-        setDragOverTarget(null);
+        resetBookingDragSurface();
         return;
       }
 
@@ -278,16 +311,14 @@ export function CalendarApp({
         dragged.technicianId === technicianId &&
         dragged.startISO === slotISO
       ) {
-        setDraggingBookingId(null);
-        setDragOverTarget(null);
+        resetBookingDragSurface();
         return;
       }
 
       const newStart = parseISO(slotISO);
       if (!wouldFitInDay(newStart, service, timezone, businessHours)) {
         setDragError("Cannot move booking outside business hours.");
-        setDraggingBookingId(null);
-        setDragOverTarget(null);
+        resetBookingDragSurface();
         return;
       }
 
@@ -299,8 +330,7 @@ export function CalendarApp({
       );
       if (overlaps) {
         setDragError("Cannot move booking into an occupied time slot.");
-        setDraggingBookingId(null);
-        setDragOverTarget(null);
+        resetBookingDragSurface();
         return;
       }
 
@@ -314,14 +344,13 @@ export function CalendarApp({
         durationMinutes: service.durationMinutes,
         notes: dragged.notes,
       });
-      setDraggingBookingId(null);
-      setDragOverTarget(null);
+      resetBookingDragSurface();
     },
     [
       bookings,
       businessHours,
       canMutateBookings,
-      draggingBookingId,
+      resetBookingDragSurface,
       services,
       timezone,
       updateBooking,
@@ -338,6 +367,64 @@ export function CalendarApp({
     () => bookings.filter((b) => isBookingOnDay(b, popoverDate, timezone)),
     [bookings, popoverDate, timezone],
   );
+
+  const bookingDragActive =
+    canMutateBookings && draggingBookingId !== null;
+
+  const dragSnapDurationMinutes = useMemo(() => {
+    if (!draggingBookingId) return null;
+    const dragged = todaysBookings.find((b) => b.id === draggingBookingId);
+    const service = dragged
+      ? services.find((s) => s.id === dragged.serviceId)
+      : undefined;
+    return service?.durationMinutes ?? null;
+  }, [draggingBookingId, services, todaysBookings]);
+
+  const dragGhost = useMemo(() => {
+    if (!draggingBookingId || !dragOverTarget) return null;
+    const dragged = bookings.find((b) => b.id === draggingBookingId);
+    const service = dragged
+      ? services.find((s) => s.id === dragged.serviceId)
+      : undefined;
+    if (!dragged || !service) return null;
+
+    const newStart = parseISO(dragOverTarget.slotISO);
+    const sameSlot =
+      dragged.technicianId === dragOverTarget.technicianId &&
+      dragged.startISO === dragOverTarget.slotISO;
+    const fits = wouldFitInDay(
+      newStart,
+      service,
+      timezone,
+      businessHours,
+    );
+    const overlaps = bookings.some(
+      (b) =>
+        b.id !== dragged.id &&
+        b.technicianId === dragOverTarget.technicianId &&
+        rangeOverlapsBooking(newStart, service.durationMinutes, b),
+    );
+    const valid = !sameSlot && fits && !overlaps;
+
+    const label =
+      dragged.customerName?.trim() || service.name;
+
+    return {
+      technicianId: dragOverTarget.technicianId,
+      slotISO: dragOverTarget.slotISO,
+      durationMinutes: service.durationMinutes,
+      colorClassName: service.colorClassName,
+      label,
+      valid,
+    };
+  }, [
+    bookings,
+    businessHours,
+    dragOverTarget,
+    draggingBookingId,
+    services,
+    timezone,
+  ]);
 
   return (
     <div className="flex min-h-screen flex-col bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
@@ -402,7 +489,12 @@ export function CalendarApp({
             onBookingClick={handleBookingClick}
             canCreateFromSlots={canMutateBookings}
             canDragBookings={canMutateBookings}
+            bookingDragActive={bookingDragActive}
+            bookingDragCaptureReady={bookingDragCaptureReady}
+            draggingBookingId={draggingBookingId}
+            dragSnapDurationMinutes={dragSnapDurationMinutes}
             dragOverTarget={dragOverTarget}
+            dragGhost={dragGhost}
             onBookingDragStart={handleBookingDragStart}
             onBookingDragEnd={handleBookingDragEnd}
             onSlotDragOver={handleSlotDragOver}

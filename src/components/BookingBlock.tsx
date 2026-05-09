@@ -14,6 +14,7 @@ interface BookingBlockProps {
   topRow: number;
   onClick: () => void;
   canDrag?: boolean;
+  dimmed?: boolean;
   onDragStart?: (bookingId: string) => void;
   onDragEnd?: () => void;
 }
@@ -25,6 +26,7 @@ export function BookingBlock({
   topRow,
   onClick,
   canDrag = false,
+  dimmed = false,
   onDragStart,
   onDragEnd,
 }: BookingBlockProps) {
@@ -51,8 +53,9 @@ export function BookingBlock({
   )}`;
 
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       draggable={canDrag}
       onDragStart={(e) => {
         if (!canDrag) return;
@@ -60,6 +63,11 @@ export function BookingBlock({
         e.dataTransfer.effectAllowed = "move";
         e.dataTransfer.setData("text/plain", booking.id);
         onDragStart?.(booking.id);
+      }}
+      onDragOver={(e) => {
+        if (!canDrag) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
       }}
       onDragEnd={() => {
         onDragEnd?.();
@@ -71,12 +79,18 @@ export function BookingBlock({
         if (wasDraggedRef.current) return;
         onClick();
       }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          if (!wasDraggedRef.current) onClick();
+        }
+      }}
       title={note ?? undefined}
       className={`absolute inset-x-1 flex flex-col overflow-hidden rounded-md px-2 ${
         isCompact ? "py-0.5" : "py-1"
       } text-left text-xs font-medium shadow-sm ring-1 ring-black/5 transition-all hover:shadow-md focus:outline-none focus:ring-2 focus:ring-white/70 ${
-        canDrag ? "cursor-grab active:cursor-grabbing" : ""
-      } ${service.colorClassName}`}
+        canDrag ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"
+      } ${dimmed ? "opacity-[0.35]" : ""} ${service.colorClassName}`}
       style={{
         top: topRow * SLOT_HEIGHT_PX + 2,
         height: heightRows * SLOT_HEIGHT_PX - 4,
@@ -98,6 +112,6 @@ export function BookingBlock({
           {note}
         </div>
       )}
-    </button>
+    </div>
   );
 }

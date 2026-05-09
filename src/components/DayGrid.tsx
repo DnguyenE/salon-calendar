@@ -1,7 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { Booking, BusinessHours, Technician } from "@/src/types";
+import type {
+  Booking,
+  BusinessHours,
+  DragGhostPreview,
+  Technician,
+} from "@/src/types";
 import type { SidebarTimeStepMinutes } from "@/src/lib/time";
 import {
   dayEnd,
@@ -30,7 +35,12 @@ interface DayGridProps {
   onBookingClick: (bookingId: string) => void;
   canCreateFromSlots?: boolean;
   canDragBookings?: boolean;
+  bookingDragActive?: boolean;
+  bookingDragCaptureReady?: boolean;
+  draggingBookingId?: string | null;
+  dragSnapDurationMinutes?: number | null;
   dragOverTarget?: { technicianId: string; slotISO: string } | null;
+  dragGhost?: DragGhostPreview | null;
   onBookingDragStart?: (bookingId: string) => void;
   onBookingDragEnd?: () => void;
   onSlotDragOver?: (technicianId: string, slotISO: string) => void;
@@ -49,7 +59,12 @@ export function DayGrid({
   onBookingClick,
   canCreateFromSlots = true,
   canDragBookings = false,
+  bookingDragActive = false,
+  bookingDragCaptureReady = false,
+  draggingBookingId = null,
+  dragSnapDurationMinutes = null,
   dragOverTarget = null,
+  dragGhost = null,
   onBookingDragStart,
   onBookingDragEnd,
   onSlotDragOver,
@@ -127,10 +142,17 @@ export function DayGrid({
             onBookingClick={onBookingClick}
             canCreateFromSlots={canCreateFromSlots}
             canDragBookings={canDragBookings}
+            bookingDragActive={bookingDragActive}
+            bookingDragCaptureReady={bookingDragCaptureReady}
+            draggingBookingId={draggingBookingId}
+            dragSnapDurationMinutes={dragSnapDurationMinutes}
             activeDropSlotISO={
               dragOverTarget?.technicianId === technician.id
                 ? dragOverTarget.slotISO
                 : null
+            }
+            dragGhost={
+              dragGhost?.technicianId === technician.id ? dragGhost : null
             }
             onSlotDragOver={onSlotDragOver}
             onSlotDrop={onSlotDrop}
