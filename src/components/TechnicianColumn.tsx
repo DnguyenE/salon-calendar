@@ -56,6 +56,8 @@ interface TechnicianColumnProps {
   onBookingDragStart?: (bookingId: string) => void;
   onBookingDragEnd?: () => void;
   nowLineTop?: number | null;
+  /** Sum booking points only when `startISO` is at or before this instant (e.g. grid clock). */
+  completedPointsAsOf: Date;
 }
 
 export function TechnicianColumn({
@@ -82,16 +84,18 @@ export function TechnicianColumn({
   onBookingDragStart,
   onBookingDragEnd,
   nowLineTop = null,
+  completedPointsAsOf,
 }: TechnicianColumnProps) {
   const services = useServices((s) => s.services);
   const gridBodyRef = useRef<HTMLDivElement>(null);
-  const dayPoints = useMemo(() => {
+  const completedDayPoints = useMemo(() => {
     const byId = new Map(services.map((svc) => [svc.id, svc.points]));
-    return bookings.reduce(
-      (sum, b) => sum + (byId.get(b.serviceId) ?? 1),
-      0,
-    );
-  }, [bookings, services]);
+    const asOfMs = completedPointsAsOf.getTime();
+    return bookings.reduce((sum, b) => {
+      if (parseISO(b.startISO).getTime() > asOfMs) return sum;
+      return sum + (byId.get(b.serviceId) ?? 1);
+    }, 0);
+  }, [bookings, completedPointsAsOf, services]);
 
   const slots = slotsForDay(date, timezone, businessHours);
   const placementDurationRows = Math.max(
@@ -176,8 +180,9 @@ export function TechnicianColumn({
                 ? "font-normal text-amber-800/85 dark:text-amber-200/90"
                 : "font-normal text-zinc-500 dark:text-zinc-400"
             }
+            title="Completed points: services whose appointment start time has passed"
           >
-            ({dayPoints})
+            ({completedDayPoints})
           </span>
         </span>
         {subtitle && <span className={subtitleClass}>{subtitle}</span>}

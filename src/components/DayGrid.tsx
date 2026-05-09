@@ -165,6 +165,7 @@ export function DayGrid({
             onBookingDragStart={onBookingDragStart}
             onBookingDragEnd={onBookingDragEnd}
             nowLineTop={showNowLine ? nowLineTop : null}
+            completedPointsAsOf={now}
           />
         ))}
       </div>

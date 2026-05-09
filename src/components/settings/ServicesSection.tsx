@@ -75,7 +75,7 @@ export function ServicesSection({ organizationId }: ServicesSectionProps) {
   return (
     <SettingsSection
       title="Services"
-      description="Edit names, durations, prices, calendar points, and colors. Points sum in each technician column for the day (combos can count extra)."
+      description="Edit names, durations, prices, calendar points, and colors. Points count toward each tech’s header total once that appointment’s start time has passed (combos can count extra)."
     >
       {error && (
         <p
